@@ -1,0 +1,1 @@
+import{C as t}from"./command-DuKjWcCL.js";import{d as o,o as s,a,f as n,u as r,b as m}from"./index-zul1sP2k.js";const l={class:"flex items-center gap-2 text-xl font-bold"},d=o({__name:"AuthTitle",setup(p){return(c,e)=>(s(),a("h1",l,[n(r(t)),e[0]||(e[0]=m("span",null,"城市智慧交通电子眼",-1))]))}});export{d as _};

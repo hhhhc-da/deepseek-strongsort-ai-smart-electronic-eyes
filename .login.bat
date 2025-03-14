@@ -1,0 +1,1 @@
+conda activate data && python login.py

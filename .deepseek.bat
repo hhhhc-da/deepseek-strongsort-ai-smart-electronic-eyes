@@ -1,0 +1,1 @@
+conda activate data && uvicorn deepseek:app --host 0.0.0.0 --port 82 --workers 1

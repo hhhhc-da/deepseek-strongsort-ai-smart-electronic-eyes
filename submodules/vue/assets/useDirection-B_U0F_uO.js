@@ -1,0 +1,1 @@
+import{D as r,B as n,p as i}from"./index-zul1sP2k.js";const[a,s]=r("ConfigProvider");function u(t){const o=a({dir:n("ltr")});return i(()=>{var e;return(t==null?void 0:t.value)||((e=o.dir)==null?void 0:e.value)||"ltr"})}export{a as i,u};

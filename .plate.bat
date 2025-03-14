@@ -1,0 +1,1 @@
+conda activate car && python submodules\plate\detect_plate.py --detect_model submodules\plate\weights\plate_detect.pt  --rec_model submodules\plate\weights\plate_rec_color.pth --image_path source\plate --output runs

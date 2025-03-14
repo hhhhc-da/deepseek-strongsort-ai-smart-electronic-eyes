@@ -1,0 +1,1 @@
+import{d as r,o as a,c as t,w as n,e as p,m as u,u as c,P as l}from"./index-zul1sP2k.js";const _=r({__name:"MenuGroup",props:{asChild:{type:Boolean},as:{}},setup(e){const o=e;return(s,i)=>(a(),t(c(l),u({role:"group"},o),{default:n(()=>[p(s.$slots,"default")]),_:3},16))}});export{_};

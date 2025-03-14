@@ -1,0 +1,1 @@
+conda activate car && python strongsort.py --source rtmp://192.168.1.125:1935/live/114514 --output rtmp://192.168.1.125:1935/live/1919810 --save-vid
