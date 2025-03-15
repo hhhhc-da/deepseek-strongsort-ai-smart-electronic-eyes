@@ -36,7 +36,11 @@ export CXX=/usr/bin/g++
 1.  开启 Deepseek 后端服务器
 
 ```
+# 开启后端服务器
 uvicorn deepseek:app --host 0.0.0.0 --port 82 --workers 1
+
+# 测试我们的后端
+python chatapi.py
 ```
 
 开启之后大概是这样的
