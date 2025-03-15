@@ -53,14 +53,20 @@ python chatapi.py
 2.  开启后端 Login 验证服务器 ( 如果用WSGI服务器可能有奇妙的东西出现 )
 
 ```
+# 后端服务
 python login.py
+
+# 分析我们的行为
+python analysis.py
 ```
 
 为什么要这个呢，因为这个内容本身不是为大众开放的，所以为了安全性牺牲了一些了效率，注册每一次的行为，其中用 RandomForest 做了一个基础的检测，可以去看这个项目
 
-https://github.com/hhhhc-da/attack_detection
+<p><strong>https://github.com/hhhhc-da/attack_detection</strong><p>
 
 ![image](./images/Vue3.png)
+
+![image](./images/SQL.png)
 
 3.  使用 StrongSort 进行物体跟踪和识别
 
