@@ -4,9 +4,32 @@
 AI应用项目（仅供实验室模拟）
 
 ### 安装教程
-工程没有写 requirements.txt 所以如果想要跑 demo 还请找个新人慢慢装
+工程使用的环境是 Python 3.10.16 Windows 11 带 conda
 
-使用的环境是 Python 3.10，还是比较需要技巧的，如果你要跑 StrongSort 原论文的代码你需要 Python 3.7 否则对应版本的 sklearn 装不上
+```
+# 创建虚拟环境
+conda create -n eye python=3.10.16
+conda activate eye
+
+# 先安装 tb-nightly
+pip install tb_nightly-2.20.0a20250314-py3-none-any.whl
+
+# 之后正常安装 requirements.txt 和 torch CUDA
+pip install -r requirements.txt
+conda install pytorch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 pytorch-cuda=12.1 -c pytorch -c nvidia
+```
+
+由于他里面需要安装 llama-cpp-python，所以我们还需要配置编译环境，我在 Ubuntu 下测试有问题，这样解决
+
+```
+# 基本的更新和安装
+apt update && apt upgrade -y
+apt install build-essential cmake
+
+# 配置编译环境
+export CC=/usr/bin/gcc
+export CXX=/usr/bin/g++
+```
 
 ### 使用说明
 

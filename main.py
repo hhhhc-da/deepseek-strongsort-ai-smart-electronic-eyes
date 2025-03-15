@@ -6,15 +6,10 @@ os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
 os.environ["NUMEXPR_NUM_THREADS"] = "1"
 
-import argparse
-import sys
-import time
 import numpy as np
 from pathlib import Path
 import torch
-import torch.backends.cudnn as cudnn
 from numpy import random
-from PIL import Image
 import subprocess
 
 # python main.py --source rtmp://192.168.43.234:1935/live/114514 --output rtmp://192.168.43.234:1935/live/1919810 --save-vid

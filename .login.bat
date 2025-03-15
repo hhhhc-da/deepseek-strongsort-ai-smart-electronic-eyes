@@ -1,1 +1,1 @@
-conda activate data && python login.py
+conda activate eye && python login.py
