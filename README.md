@@ -31,6 +31,8 @@ export CC=/usr/bin/gcc
 export CXX=/usr/bin/g++
 ```
 
+然后呢，你需要去 Release 里下载全部的模型文件，因为太大了所以不放在源码这里了
+
 ### 使用说明
 
 1.  开启 Deepseek 后端服务器
