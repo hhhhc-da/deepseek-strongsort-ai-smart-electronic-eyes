@@ -62,7 +62,7 @@ python analysis.py
 
 为什么要这个呢，因为这个内容本身不是为大众开放的，所以为了安全性牺牲了一些了效率，注册每一次的行为，其中用 RandomForest 做了一个基础的检测，可以去看这个项目
 
-<p><strong>https://github.com/hhhhc-da/attack_detection</strong><p>
+<p><strong>基于随机森林算法的网络攻击检测案例 https://github.com/hhhhc-da/attack_detection</strong><p>
 
 ![image](./images/Vue3.png)
 
