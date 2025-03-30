@@ -1,7 +1,7 @@
 # DeepSeek+StrongSort双AI赋能城市智慧交通电子眼
 
 ### 介绍
-AI应用项目 <p><strong>（仅供实验室模拟）</strong></p>
+AI应用项目 （仅供实验室模拟）
 
 ### 安装教程
 工程使用的环境是 Python 3.10.16 Windows 11 带 conda
@@ -31,7 +31,7 @@ export CC=/usr/bin/gcc
 export CXX=/usr/bin/g++
 ```
 
-然后呢，你需要去 <p><strong>Release</strong></p> 里下载全部的模型文件，因为太大了所以不放在源码这里了
+然后呢，你需要去 Release 里下载全部的模型文件，因为太大了所以不放在源码这里了
 
 ### 使用说明
 
@@ -62,7 +62,7 @@ python login.py
 python analysis.py
 ```
 
-为什么要这个呢，因为这个内容本身不是为大众开放的，所以为了安全性<p><strong>牺牲了一些了效率</strong></p>，注册每一次的行为，其中用 <p><strong>RandomForest</strong></p> 做了一个基础的检测，可以去看这个项目
+为什么要这个呢，因为这个内容本身不是为大众开放的，所以为了安全性<p><strong>牺牲了一些了效率</strong></p>，注册每一次的行为，其中用 RandomForest 做了一个基础的检测，可以去看这个项目
 
 <p><strong>基于随机森林算法的网络攻击检测案例 https://github.com/hhhhc-da/attack_detection</strong><p>
 
@@ -86,7 +86,7 @@ python main.py --source rtmp://192.168.43.234:1935/live/114514 --output rtmp://1
 
 ![image](./images/strongsort-yolov7.png)
 
-#### 4.  项目的车道线识别完全是基于计算机图形学做的， 建议对接到 <strong>PolyLaneNet</strong> 这种多项式拟合网络，我提供了对接二次函数的接口
+#### 4.  项目的车道线识别完全是基于计算机图形学做的， 建议对接到 PolyLaneNet 这种多项式拟合网络，我提供了对接二次函数的接口
 
 ![image](./images/mask_lane.jpg)
 
@@ -94,7 +94,7 @@ python main.py --source rtmp://192.168.43.234:1935/live/114514 --output rtmp://1
 
 ![image]()
 
-红绿灯的检测则是使用将 BGR 转换转换为 HSV 格式实现的掩码色相检测，效果还可以, 在项目内还有一个<p><strong>状态转移</strong></p>的控制
+红绿灯的检测则是使用将 BGR 转换转换为 HSV 格式实现的掩码色相检测，效果还可以, 在项目内还有一个状态转移的控制
 
 ![image](./images/color.png)
 
@@ -102,7 +102,7 @@ python main.py --source rtmp://192.168.43.234:1935/live/114514 --output rtmp://1
 
 ![image](./images/data.png)
 
-之后训练的<p><strong>效果不是很理想</strong></p>，而且在验证视频上 YOLOv7 的默认参数效果不好所以重新训练了一个
+之后训练的效果不是很理想，而且在验证视频上 YOLOv7 的默认参数效果不好所以重新训练了一个
 
 ![image](./images/yolov7.png)
 
