@@ -95,7 +95,7 @@ def track_analysis(track_data:dict={}, img_wh=(640,640), behavior=[], mask=np.ze
     print(pf, '\n')
     return pf
 
-def prompt_create():
+def prompt_create(lnpf):
     '''
     生成 Prompt 输入到 DeepSeek
     '''

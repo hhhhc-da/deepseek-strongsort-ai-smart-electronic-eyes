@@ -75,7 +75,7 @@ def main():
             lnpf = track_analysis(track_data=tr, img_wh=img_wh, behavior=behavior, mask=mask, colors=colors, keys=list(tr.keys()))
 
             # 重读数据并生成 Prompt
-            
+            prompt_create(lnpf)
             
         else:
             print("视频提取失败, 请检查视频是否规范")
