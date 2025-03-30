@@ -86,7 +86,7 @@ python main.py --source rtmp://192.168.43.234:1935/live/114514 --output rtmp://1
 
 ![image](./images/strongsort-yolov7.png)
 
-#### 4.  项目的车道线识别完全是基于计算机图形学做的， 建议对接到 <p><strong>PolyLaneNet</strong></p> 这种多项式拟合网络，我提供了对接二次函数的接口
+#### 4.  项目的车道线识别完全是基于计算机图形学做的， 建议对接到 <strong>PolyLaneNet</strong> 这种多项式拟合网络，我提供了对接二次函数的接口
 
 ![image](./images/mask_lane.jpg)
 
