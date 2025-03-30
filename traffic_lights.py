@@ -3,6 +3,9 @@ import numpy as np
 
 # 色相检测, 需要输入 BGR 图片
 def color_dicision_bgr(img):
+    '''
+    对 HSV 图片进行色相检测对红绿灯进行识别, 要求输入 BGR 图片
+    '''
     if img is None:
         return -2, "Error: Invalid img."
     
@@ -40,16 +43,22 @@ def color_dicision_bgr(img):
         return -1, "Error: No traffic-lights detected."
     
     if max_pixels == red_pixels:
-        return 0, "Red"
+        return 0, "R"
     elif max_pixels == yellow_pixels:
-        return 1, "Yellow"
+        return 1, "Y"
     else:
-        return 2, "Green"
+        return 2, "G"
 
 def color_dicision_rgb(img):
+    '''
+    对 HSV 图片进行色相检测对红绿灯进行识别, 要求输入 RGB 图片
+    '''
     img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
     return color_dicision_bgr(img)
 
 def color_dicision_path(img_path):
+    '''
+    对 HSV 图片进行色相检测对红绿灯进行识别, 要求输入图片路径
+    '''
     img = cv2.imread(img_path)
     return color_dicision_bgr(img)

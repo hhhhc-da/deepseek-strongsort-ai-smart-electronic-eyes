@@ -25,10 +25,16 @@ cursor = db.cursor()
 
 @app.route('/')
 def index():
+    '''
+    根路径重定向到 /login
+    '''
     return redirect('/login')
 
 @app.route('/login', methods=['POST'])
 def login():
+    '''
+    登录函数, 用于记录所有登录行为
+    '''
     data = request.get_json()
     if not data:
         return jsonify({'Code': -2, 'Error': 'No JSON data received'}), 400
@@ -47,6 +53,9 @@ def login():
   
 @app.before_request
 def before_request():
+    '''
+    同步 request 和 response, 加入线程锁
+    '''
     # 获取线程锁
     data_lock.acquire()
     
@@ -73,6 +82,9 @@ def before_request():
         
 @app.after_request
 def after_request(response):
+    '''
+    将同步后的信息都上传到 MySQL
+    '''
     request_id = g.get('request_id', 'N/A')
     status_code = response.status_code
     

@@ -66,9 +66,9 @@ python analysis.py
 
 <p><strong>基于随机森林算法的网络攻击检测案例 https://github.com/hhhhc-da/attack_detection</strong><p>
 
-![image](./images/Vue3.png)
+![image](./images/vue3.png)
 
-![image](./images/SQL.png)
+![image](./images/sql.png)
 
 3.  使用 StrongSort 进行物体跟踪和识别
 
@@ -82,27 +82,36 @@ python main.py --source rtmp://192.168.43.234:1935/live/114514 --output rtmp://1
 
 ![image](./images/http-flv.png)
 
-而我们的主角 StrongSort 则是输出这些十维数据，不过在最新的工程中我添加了几个维度的信息
+而我们的主角 StrongSort 则是输出这些数据，不过在最新的工程中我添加了几个维度的信息
 
 ![image](./images/strongsort-yolov7.png)
 
-4.  项目训练了一个车辆的行为模式识别 ( 直行、左转、右转、静止、掉头 ) 进行了训练，下面是一些数据预处理的图片
+4.  项目的车道线识别完全是基于计算机图形学做的， 建议对接到 PolyLaneNet 这种多项式拟合网络，我提供了对接二次函数的接口
+
+![image](./images/mask_lane.jpg)
+
+这个可以掩膜绘制我们感兴趣的部分, 具体应用到工程里的话就是这样的
+
+![image]()
+
+红绿灯的检测则是使用将 BGR 转换转换为 HSV 格式实现的掩码色相检测，效果还可以, 在项目内还有一个状态转移的控制
+
+![image](./images/color.png)
+
+5.  项目训练了一个车辆的行为模式识别 ( 直行、左转、右转、静止、掉头 ) 进行了训练，下面是一些数据预处理的图片
 
 ![image](./images/data.png)
 
 之后训练的效果不是很理想，而且在验证视频上 YOLOv7 的默认参数效果不好所以重新训练了一个
 
-![image](./images/YOLOv7.png)
+![image](./images/yolov7.png)
 
-之后训练了一个行为预测，F1-score 才 71%，勉强凑合用
+之后训练了一个行为预测，F1-score 才 75%，勉强凑合用
 
-![image](./images/Behavior-disigma.png)
+![image](./images/behavior.png)
 
 ![image](./images/perfect-samples.jpg)
 
-5.  红绿灯的检测则是使用将 BGR 转换转换为 HSV 格式实现的掩码色相检测，效果还可以
-
-![image](./images/color.png)
 
 ### 特别鸣谢
 1.  YOLOv7 + StrongSort + OSNet 是这个开源项目：

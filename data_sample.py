@@ -3,6 +3,9 @@ import os
 import pandas as pd
 
 def data_sample(file_path):
+    '''
+    随机取出一行轨迹数据, 前期用于验证 Behavior 模型质量
+    '''
     data = None
     with open(file_path, 'r') as f:
         data = f.readlines()

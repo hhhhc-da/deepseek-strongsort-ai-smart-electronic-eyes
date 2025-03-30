@@ -25,6 +25,9 @@ running = True
 
 @app.websocket("/ws")
 async def chat_websocket(websocket: WebSocket):
+    '''
+    DeepSeek 后端函数, 单线程
+    '''
     await websocket.accept()
     while True:
         try:
@@ -58,6 +61,9 @@ async def chat_websocket(websocket: WebSocket):
             break
         
 async def chat_deepseek(question:str='', prompt_path=os.path.join('source', 'prompt.txt'), encoding='utf-8'):
+    '''
+    WebSockets 流式访问函数
+    '''
     uri = "ws://localhost:82/ws"
     async with websockets.connect(uri) as websocket:
         long_string = ""
@@ -87,6 +93,9 @@ async def chat_deepseek(question:str='', prompt_path=os.path.join('source', 'pro
         
 # 对话 API
 def chat(question:str=''):
+    '''
+    流式访问 DeepSeek 封装函数
+    '''
     return asyncio.get_event_loop().run_until_complete(chat_deepseek(question))
 
 

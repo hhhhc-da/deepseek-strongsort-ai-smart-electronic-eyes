@@ -8,6 +8,9 @@ import random
 
 # 批量测试数据
 def sample_tracks():
+    '''
+    批量测试 Behavior 模型, 仅在测试中使用
+    '''
     fig, ax = plt.subplots(4, 4, figsize=(8, 8))
     for ax_fla in ax.flatten():
         o, t, data = predict_behavior_sample()
@@ -18,6 +21,9 @@ def sample_tracks():
     plt.show()
     
 def track_from_data(data):
+    '''
+    对数据进行计算并可视化, 仅在测试中使用
+    '''
     o, t = predict_behavior(data)
     print("输出为: {}, 类型为: {}".format(t, o))
     fig, ax = plt.subplots(1, 1, figsize=(4, 4))

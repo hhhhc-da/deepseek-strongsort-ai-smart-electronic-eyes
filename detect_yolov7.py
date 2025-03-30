@@ -12,6 +12,9 @@ from utils.plots import plot_one_box
 from utils.torch_utils import select_device, time_synchronized
 
 def detect_img_path(source=os.path.join('source', 'lane.jpg'), weights=os.path.join('models', 'nanoka-car-valid.pt'), view_img=True, save_txt=True, imgsz=640, trace=False, save_img=True, device='0'):
+    '''
+    通过路经的方式使用 YOLOv7 进行检测
+    '''
     # 保存目录
     save_dir = os.path.join('runs')
     if not os.path.exists(save_dir):
@@ -114,7 +117,7 @@ def detect_img_path(source=os.path.join('source', 'lane.jpg'), weights=os.path.j
                 cv2.imwrite(save_path, im0)
                 print(f" The image with the result is saved in: {save_path}")
     print(f'Done. ({time.time() - t0:.3f}s)')
-    return txt_path
+    return txt_path + '.txt', names
 
 if __name__ == '__main__':
     detect_img_path()

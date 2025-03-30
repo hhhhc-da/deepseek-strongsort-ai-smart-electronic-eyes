@@ -1,0 +1,57 @@
+E:\pandownload1\ML\Police\Project> python main.py --source source\valid.mp4 --save-vid
+E:\pandownload1\COMPUTER\Anaconda\envs\eye\lib\site-packages\torchreid\reid\metrics\rank.py:11: UserWarning: Cython evaluation (very fast so highly recommended) is unavailable, now use python evaluation.
+  warnings.warn(
+
+第一帧已保存为: .cache\lane.jpg
+
+YOLOR  204b609 torch 2.5.1 CUDA:0 (NVIDIA GeForce RTX 3050 Laptop GPU, 4095.5MB)
+
+E:\pandownload1\ML\Police\Project\models\experimental.py:252: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ckpt = torch.load(w, map_location=map_location)  # load
+Fusing layers... 
+RepConv.fuse_repvgg_block
+RepConv.fuse_repvgg_block
+RepConv.fuse_repvgg_block
+E:\pandownload1\COMPUTER\Anaconda\envs\eye\lib\site-packages\torch\functional.py:534: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at C:\cb\pytorch_1000000000000\work\aten\src\ATen\native\TensorShape.cpp:3596.)
+  return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
+Model Summary: 306 layers, 36501466 parameters, 6194944 gradients, 103.2 GFLOPS
+2 cross-lines, 1 left-straight, 1 straight, 1 traffic-lights, Done. (18.3ms) Inference, (333.4ms) NMS
+ The image with the result is saved in: runs\lane.jpg
+Done. (0.570s)
+
+图片大小为: 540 x 720
+
+            class                                        box      conf
+0        straight   [0.664815, 0.866667, 0.037037, 0.197222]  0.669922
+1      cross-line   [0.506481, 0.636111, 0.587037, 0.102778]  0.716309
+2      cross-line  [0.501852, 0.296528, 0.581481, 0.0986111]  0.753906
+3   left-straight  [0.325926, 0.865278, 0.0777778, 0.211111]  0.768066
+4  traffic-lights   [0.215741, 0.136806, 0.431481, 0.126389]  0.921875
+
+        num_ways
+YOLOv7         2
+OpenCV         2 
+
+预测车道线 HIT 区域 x = [76, 270, 464]
+  px_stop_line
+0    x = 76.50
+1   x = 270.00
+2   x = 464.00
+共归类出 3 条车道线
+
+  px_stop_line
+0   y = 495.00
+1   y = 178.00
+停止线预测位置在 y = 495.00
+
+车道线掩码已保存至 .cache\mask_lane.jpg
+
+YOLOv7 + StrongSort 跟踪后共有 6 个轨迹
+
+    ID           lane  behavior      true   judge
+0  1.0       straight  straight  straight  Normal
+1  2.0       straight  straight  straight  Normal
+2  3.0       straight  straight      left  Normal
+3  4.0  left-straight      left      left  Normal
+4  5.0       straight  straight      left  Normal
+5  6.0  left-straight      left      left  Normal

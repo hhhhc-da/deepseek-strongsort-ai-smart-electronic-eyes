@@ -4,6 +4,9 @@ import cv2
 
 # 取二十份数据, 将前几个的数据拿出来作为基本值
 def calculate_angle(norm_data):
+    '''
+    用于计算旋转角, 输出弧度制数据
+    '''
     # 采样数据
     sl = len(norm_data) // 20
     start_pos, range_length = 2, 2
@@ -40,12 +43,18 @@ def calculate_angle(norm_data):
 
 # 计算旋转角矩阵, 默认向左旋转 (为什么是左转，因为坐标计算是按照正常的 xOy 平面计算的, 但是计算机内的存储方式有 y 轴反转, 所以向左旋转就是顺时针旋转)
 def calculate_spin(norm_data):
+    '''
+    通过 calculate_angle 计算旋转矩阵
+    '''
     angle = calculate_angle(norm_data)
     l = [[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]]
     return np.array(l, dtype=np.float32)
 
 # 数据构建和重整
 def expand_data(data, max_length=50):
+    '''
+    进行数据截断和补齐, 对齐到一个时序数据包
+    '''
     r = []
     prb = len(data) / max_length # 每一条信息的占比
 
@@ -73,6 +82,9 @@ def expand_data(data, max_length=50):
     return np.array(r, dtype=np.float32)
 
 def transpose_data(origin:np.ndarray, max_length=100):
+    '''
+    对数据进行重整和旋转归一化
+    '''
     mask = np.stack([origin[0] for _ in range(len(origin))])
     norm_data = (origin - mask)[1:, :]
     # print("norm_data\n{}\n".format(pd.DataFrame(norm_data)))
@@ -92,6 +104,9 @@ def transpose_data(origin:np.ndarray, max_length=100):
     return norm_data, norm_data_transpose
 
 def plot_img(feature, labels=None, ax=None, title="Visualization"):
+    '''
+    绘制普通的路径图像, 从红色到蓝色
+    '''
     dict_action = {
         "stop": 0,
         "left": 1,
@@ -125,13 +140,16 @@ def plot_img(feature, labels=None, ax=None, title="Visualization"):
     if ax is None:
         plt.figure()
         plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-        plt.set_title(title)
+        plt.title(title)
         plt.show()
     else:
         ax.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
         ax.set_title(title)
 
 def plot_arraw(feature, labels=None, ax=None, title="Visualization"):
+    '''
+    绘制归一化到 R^2 空间内的向量图, 从红色到蓝色
+    '''
     dict_action = {
         "stop": 0,
         "left": 1,
@@ -166,8 +184,9 @@ def plot_arraw(feature, labels=None, ax=None, title="Visualization"):
     if ax is None:
         plt.figure()
         plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-        plt.set_title(title)
-        plt.show()
+        plt.title(title)
+        plt.savefig(title + '.png')
+        plt.close()
     else:
         ax.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
         ax.set_title(title)
