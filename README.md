@@ -88,11 +88,9 @@ python main.py --source rtmp://192.168.43.234:1935/live/114514 --output rtmp://1
 
 #### 4.  项目的车道线识别完全是基于计算机图形学做的， 建议对接到 PolyLaneNet 这种多项式拟合网络，我提供了对接二次函数的接口
 
-![image](./images/mask_lane.jpg)
-
 这个可以掩膜绘制我们感兴趣的部分, 具体应用到工程里的话就是这样的
 
-![image]()
+![image](./images/mask_lane.jpg)
 
 红绿灯的检测则是使用将 BGR 转换转换为 HSV 格式实现的掩码色相检测，效果还可以, 在项目内还有一个状态转移的控制
 
