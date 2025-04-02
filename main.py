@@ -16,14 +16,14 @@ from datetime import datetime
 # python main.py --source rtmp://192.168.43.234:1935/live/114514 --output rtmp://192.168.43.234:1935/live/1919810 --save-vid
 # python main.py --source source\valid.mp4 --save-vid
 
-from strongsort import parse_opt, track
-from prepare import extract_frame, load_tr
-from detect_yolov7 import detect_img_path
-from lane import environment_explore, lane_mask_create
-from behavior import predict_behavior_parallel
-from analysis import track_analysis, prompt_create
-from chatapi import request_deepseek
-from report import create_abnormal_behavior_dict, create_windows_format_report
+from modules.strongsort import parse_opt, track
+from modules.prepare import extract_frame, load_tr
+from modules.detect_yolov7 import detect_img_path
+from modules.lane import environment_explore, lane_mask_create
+from modules.behavior import predict_behavior_parallel
+from modules.analysis import track_analysis, prompt_create
+from modules.chatapi import request_deepseek
+from modules.report import create_abnormal_behavior_dict, create_windows_format_report
 
 def main():
     '''
@@ -33,7 +33,7 @@ def main():
     opt = parse_opt()
     
     if opt.source:
-        cache = os.path.join(".cache", "lane.jpg")
+        cache = os.path.abspath(os.path.join(".cache", "lane.jpg"))
         # 把第一帧摘取出来
         if extract_frame(opt.source, output_image_path=cache):
             # 特征识别检测
@@ -46,11 +46,11 @@ def main():
             mask, colors = lane_mask_create(img_wh=img_wh,
                                     px_stop_line=px_stop_line,
                                     px_lane_info=px_lane_info,
-                                    save_path=os.path.join(".cache", "mask_lane.jpg"))
+                                    save_path=os.path.abspath(os.path.join(".cache", "mask_lane.jpg")))
             
             # 轨迹数据 tr 句柄
             tr, name = {}, None
-            dirs = os.listdir(os.path.join("runs", "track"))
+            dirs = os.listdir(os.path.abspath(os.path.join("runs", "track")))
             if len(dirs) == 0:
                 print("没有历史数据, 开始跟踪")
                 
@@ -61,7 +61,7 @@ def main():
                 name = 'exp' + str(len(dirs)) if len(dirs) != 1 else 'exp'
                 
                 # 直接装载上一次的数据进行测试
-                tr = load_tr(path=os.path.join("runs", "track", name, "tr.pkl"))
+                tr = load_tr(path=os.path.abspath(os.path.join("runs", "track", name, "tr.pkl")))
                 print(f"YOLOv7 + StrongSort 跟踪后共有 {len(tr)} 个轨迹\n")
                 
             # 对 tr 的路径数据进行归一化
@@ -70,7 +70,7 @@ def main():
             
             # 对车辆行为进行计算
             behavior = predict_behavior_parallel(data=data,
-                                      model_name=os.path.join('models', 'behavior_model_d1sigma_silu.pth'),
+                                      model_name=os.path.abspath(os.path.join('models', 'behavior_model_d1sigma_silu.pth')),
                                       device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
                                       switch_mode="d1sigma")
             
@@ -78,7 +78,7 @@ def main():
             lnpf = track_analysis(track_data=tr, img_wh=img_wh, behavior=behavior, mask=mask, colors=colors, keys=list(tr.keys()))
 
             # 重读数据并生成 Prompt
-            qtpf = prompt_create(lnpf, tr_txt=os.path.join("runs", "track", name, "trace_frames.txt"))
+            qtpf = prompt_create(lnpf, tr_txt=os.path.abspath(os.path.join("runs", "track", name, "trace_frames.txt")))
             
             # 开始询问 DeepSeek, 获取问答结果
             rlpf = request_deepseek(lnpf, qtpf)
