@@ -3,6 +3,10 @@
 ### 介绍
 AI应用项目 （仅供实验室模拟）
 
+![image](./images/design.png)
+
+上面是整个项目的图解
+
 ### 安装教程
 工程使用的环境是 Python 3.10.16 Windows 11 带 conda
 
