@@ -4,6 +4,8 @@ from sqlalchemy import create_engine
 import pandas as pd
 import numpy as np
 from prepare import transform_ndarray_to_string
+from lane import extract_ranges
+from plate import extract_plate
 
 
 def attack_classify(model_path=os.path.join('models', 'random_forest_model.pkl'), db_url='mysql+pymysql://nanoka:12345678n@localhost:3308/manage'):
@@ -80,8 +82,11 @@ def track_analysis(track_data:dict={}, img_wh=(640,640), behavior=[], mask=np.ze
             
         lane_info.append(info)
         
-    pf = pd.DataFrame({"ID": keys, "lane": lane_info, "behavior": [i[1] for i in behavior],
-                       "true": ['straight', 'straight', 'left', 'left', 'left', 'left']})
+    pf = pd.DataFrame({
+        "ID": keys,
+        "lane": lane_info, 
+        "behavior": [i[1] for i in behavior],
+    })
     
     # 识别车道类型
     allowed_type = [i.split('-') for i in pf["lane"].values]
@@ -91,15 +96,90 @@ def track_analysis(track_data:dict={}, img_wh=(640,640), behavior=[], mask=np.ze
     for bv, al in zip(pf["behavior"].values, allowed_type):
         exmap.append("Normal") if bv in al else exmap.append("Abnormal")
     pf['judge'] = exmap
+    pf['plate'] = [extract_plate() for i in range(len(exmap))]
     
     print(pf, '\n')
     return pf
 
-def prompt_create(lnpf):
+def prompt_create(lnpf, tr_txt=os.path.join("runs", "track", "exp", "trace_frames.txt"), encoding='utf-8'):
     '''
     生成 Prompt 输入到 DeepSeek
     '''
-    pass
+    # 首先我们装载所有 DIY 类型数据 (这里是破坏性操作, 应该改成动态扩展的)
+    lst = []
+    with open(tr_txt, 'r', encoding=encoding) as f:
+        while line := f.readline().strip():
+            lst.append(map(int, line.split()))
+        f.close()
+
+    trpf = pd.DataFrame(lst, columns=['frame', 'id', 'x', 'y', 'w', 'h', 'x_3d', 'y_3d', 'z_3d', 'frame-object-id', 'traffic-lights'])
+    trpf
+    
+    # 排序并按组别分类
+    sorted_pf = trpf.groupby('id', group_keys=False).apply(lambda x: x.sort_values('frame'))
+    sub_tables = {id: group for id, group in sorted_pf.groupby('id')}
+    
+    # Prompt 生成逻辑, pr 嵌套 + ed 结束语
+    # Frame, Trrafic-light (eg.由红灯转为绿灯), plate, lane_type, behavior, status (eg.未)
+    pr1 = "视频第{}帧，{}，车牌{}，位于{}车道，正在{}。\n"
+    pr2 = "视频第{}帧，{}，车牌{}，位于{}车道，正在{}，{}越过停止线。\n"
+    ed = "请问视频中有没有交通违法行为？请尽可能简短的回答问题。"
+    
+    traffic_lights_dict = {
+        "0": "红灯",
+        "1": "黄灯",
+        "2": "绿灯",
+        "02": "由红灯转为绿灯",
+        "21": "由绿灯转为黄灯",
+        "10": "由黄灯转为红灯",
+    }
+    
+    lane_status_dict = {
+        "stop": "静止",
+        "straight": "直行",
+        "left": "左转",
+        "right": "右转",
+        "uturn": "掉头",
+        "left-straight": "直行和左转",
+        "right-straight": "直行和右转",
+        "left-right": "左转和右转",
+        "left-uturn": "左转和掉头",
+    }
+    
+    questions = []
+    for i, k in enumerate(sub_tables.keys()):
+        trigger = extract_ranges(sub_tables[k]['traffic-lights'].values)
+        # 如果只有一个灯
+        if len(trigger) == 0:
+            # 首尾数据
+            top_line, bottom_line = sub_tables[k].iloc[0], sub_tables[k].iloc[-1]
+            lights = str(int(top_line['traffic-lights']))
+            
+            # 生成数据
+            question = pr1.format(
+                # 帧号
+                "{}到{}".format(top_line['frame'], bottom_line['frame']),
+                # 红绿灯状态
+                traffic_lights_dict[lights],
+                # 车牌信息
+                extract_plate(),
+                # 车道信息
+                lane_status_dict[lnpf[lnpf['ID'] == top_line['id']]['lane'].values[0]],
+                # 行为 (与车道共用一套, 集合更小)
+                lane_status_dict[lnpf[lnpf['ID'] == top_line['id']]['behavior'].values[0]]
+            ) + ed
+            
+            questions.append(question)
+        else:
+            print("未知领域")
+            pass
+        
+    pf = pd.DataFrame({
+        "question": questions
+        })
+    print(pf, '\n')
+    return pf
+    
 
 if __name__ == '__main__':
     i, s = attack_classify()

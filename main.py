@@ -11,6 +11,7 @@ import cv2
 import pandas as pd
 import matplotlib.pyplot as plt
 import torch
+from datetime import datetime
 
 # python main.py --source rtmp://192.168.43.234:1935/live/114514 --output rtmp://192.168.43.234:1935/live/1919810 --save-vid
 # python main.py --source source\valid.mp4 --save-vid
@@ -21,6 +22,8 @@ from detect_yolov7 import detect_img_path
 from lane import environment_explore, lane_mask_create
 from behavior import predict_behavior_parallel
 from analysis import track_analysis, prompt_create
+from chatapi import request_deepseek
+from report import create_abnormal_behavior_dict, create_windows_format_report
 
 def main():
     '''
@@ -44,16 +47,16 @@ def main():
                                     px_stop_line=px_stop_line,
                                     px_lane_info=px_lane_info,
                                     save_path=os.path.join(".cache", "mask_lane.jpg"))
-            print("(Main)", colors)
             
             # 轨迹数据 tr 句柄
-            tr = {}
+            tr, name = {}, None
             dirs = os.listdir(os.path.join("runs", "track"))
             if len(dirs) == 0:
                 print("没有历史数据, 开始跟踪")
                 
                 # 开始进行追踪 (p.s.案例视频输出结果没有黄灯不代表状态转移失败, 而是该帧没有被记录)
                 tr = track(**vars(opt), opt=opt, mask=mask, legends=colors)
+                name = 'exp'
             else:
                 name = 'exp' + str(len(dirs)) if len(dirs) != 1 else 'exp'
                 
@@ -75,8 +78,17 @@ def main():
             lnpf = track_analysis(track_data=tr, img_wh=img_wh, behavior=behavior, mask=mask, colors=colors, keys=list(tr.keys()))
 
             # 重读数据并生成 Prompt
-            prompt_create(lnpf)
+            qtpf = prompt_create(lnpf, tr_txt=os.path.join("runs", "track", name, "trace_frames.txt"))
             
+            # 开始询问 DeepSeek, 获取问答结果
+            rlpf = request_deepseek(lnpf, qtpf)
+            
+            # 开始解析 DeepSeek 输出结果, 并生成报告字典
+            rst = create_abnormal_behavior_dict(lnpf, rlpf)
+            
+            for dc in rst:
+                # 生成对应的 PDF 证书
+                create_windows_format_report(dc)
         else:
             print("视频提取失败, 请检查视频是否规范")
     else:

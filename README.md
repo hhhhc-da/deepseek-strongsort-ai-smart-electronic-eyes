@@ -112,6 +112,18 @@ python main.py --source rtmp://192.168.43.234:1935/live/114514 --output rtmp://1
 
 ![image](./images/perfect-samples.jpg)
 
+#### 6.  项目正式接入了 Prompt 的生成和 DeepSeek 交互, 预计未来还要接入 Bert 进行分类
+
+![image](./images/question.png)
+
+程序内其实还是有一些技巧的，比如关键信息抽取
+
+![image](./images/tricks.png)
+
+#### 7.  项目最后会根据分类结果生成一个证书
+
+![image](./images/report.png)
+
 
 ### 特别鸣谢
 1.  YOLOv7 + StrongSort + OSNet 是这个开源项目：

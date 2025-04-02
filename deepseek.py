@@ -84,7 +84,8 @@ async def chat_deepseek(question:str='', prompt_path=os.path.join('source', 'pro
                     print("数据超长")
                     raise Exception("数据超长")
         except ConnectionClosedOK:
-            print("Server closed the connection normally.")
+            # print("Server closed the connection normally.")
+            pass
         except Exception as e:
             websocket.close()
             print("Exception:", e)

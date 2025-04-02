@@ -16,14 +16,21 @@ def extract_ranges(arr):
     '''
     基于梯度的检测, 本质就是切割出转点
     '''
-    indices = np.where(arr == 255)[0]
+    # 找到异常点 index
+    indices = np.where(np.abs(arr) < 1e-2)[0]
     if len(indices) == 0:
         return []
     
-    diffs = np.diff(indices)
-    splits = np.where(diffs != 1)[0] + 1
+    # 差分计算连续点差值
+    diffs = np.diff(indices) 
+    # 计算终点偏移
+    splits = np.where(diffs - 1 > 1e-2)[0] + 1         # 只有差值大于 1.001 的才采纳
+    if len(splits) == 0:
+        return [] # 差分计算后没有移动
+    
     groups = np.split(indices, splits)
-    ranges = [ (group[0], group[-1]) for group in groups if len(group) > 0 ]
+    # 映射回 index
+    ranges = [ (group[0], group[-1]+1) for group in groups if len(group) > 0 ]
     return ranges
 
 def environment_explore(cache=os.path.join(".cache", "lane.jpg"), txt_path=os.path.join(".cache", "lane.txt"), names={}):
