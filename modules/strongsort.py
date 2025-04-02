@@ -13,9 +13,7 @@ import torch
 from numpy import random
 import subprocess
 import joblib
-
-# python main.py --source rtmp://192.168.43.234:1935/live/114514 --output rtmp://192.168.43.234:1935/live/1919810 --save-vid
-# python main.py --source source\valid.mp4 --save-vid
+import pandas as pd
 
 from models.experimental import attempt_load
 from utils.datasets import LoadImages
@@ -29,12 +27,14 @@ from submodules.strongsort.strong_sort.strong_sort import StrongSORT
 from modules.traffic_lights import color_dicision_bgr
 from modules.prepare import draw_figure_legend
 
+from ultralytics import YOLO
+
 def parse_opt():
     '''
-    YOLOv7 + StrongSort 参数列表, 获取所有配置
+    YOLO + StrongSort 参数列表, 获取所有配置
     '''
     parser = argparse.ArgumentParser()
-    parser.add_argument('--yolo-weights', nargs='+', type=str, default=os.path.abspath(os.path.join('models', 'nanoka-car-valid.pt')), help='model.pt path(s)')
+    parser.add_argument('--yolo-weights', nargs='+', type=str, default=os.path.abspath(os.path.join('models', 'nanoka-car-valid-yolov12.pt')), help='model.pt path(s)')
     parser.add_argument('--strong-sort-weights', type=str, default=os.path.abspath(os.path.join('models', 'osnet_x0_25_msmt17.pt')))
     parser.add_argument('--config-strongsort', type=str, default=os.path.abspath(os.path.join('submodules','strongsort','strong_sort','configs','strong_sort.yaml')))
     parser.add_argument('--source', type=str, default='0', help='file/dir/URL/glob, 0 for webcam')
@@ -65,6 +65,7 @@ def parse_opt():
     parser.add_argument('--hide-class', default=False, action='store_true', help='hide IDs')
     parser.add_argument('--half', action='store_true', help='use FP16 half-precision inference')
     parser.add_argument('--dnn', action='store_true', help='use OpenCV DNN for ONNX inference')
+    parser.add_argument('--version', default=12, type=int, help='YOLO model version on 7 or 12')
     opt = parser.parse_args()
     opt.imgsz *= 2 if len(opt.imgsz) == 1 else 1
 
@@ -74,7 +75,7 @@ def parse_opt():
 def track(
         source='0',
         output='0',
-        yolo_weights=os.path.abspath(os.path.join('models', 'nanoka-car-valid.pt')),  # YOLOv7 Pt 模型位置
+        yolo_weights=os.path.abspath(os.path.join('models', 'nanoka-car-valid-yolov12.pt')),  # YOLOv7 Pt 模型位置
         strong_sort_weights=os.path.abspath(os.path.join('models', 'osnet_x0_25_msmt17.pt')),  # StrongSort Pt 模型位置
         config_strongsort=os.path.abspath(os.path.join('submodules', 'strongsort', 'strong_sort', 'configs', 'strong_sort.yaml')), # StrongSort 配置文件
         imgsz=(640, 640),  # 处理图片大小
@@ -102,6 +103,7 @@ def track(
         hide_class=False,  # 隐藏 ID 数
         half=False,  # 使用 FP16 推理
         dnn=False,  # 使用 OpenCV DNN 进行 ONNX 推理
+        version=12, # 使用的 YOLO 版本, 只能填 7 或 12
         process=None,  # FFmpeg 句柄
         opt=None,  # 参数列表
         mask=np.zeros((640,640,3), dtype=np.uint8), # 车道线掩码
@@ -111,7 +113,8 @@ def track(
     StrongSort 跟踪函数, 返回一个跟踪信息字典
     '''
     tr = {}
-    try:
+    # try:
+    if 1:
         VID_FORMATS='asf','avi','gif','m4v','mkv','mov','mp4','mpeg','mpg','ts','wmv' # 视频格式
         source = str(source)
         is_file = Path(source).suffix[1:] in (VID_FORMATS)
@@ -131,25 +134,18 @@ def track(
         save_dir = increment_path(Path(project) / exp_name, exist_ok=exist_ok)  # 运行次数递增
         save_dir = Path(save_dir)
         (save_dir / 'tracks' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # 创建文件夹
-
-        # 装载 YOLO 模型
-        device = select_device(device)
         
-        model = attempt_load(yolo_weights, map_location=device)  # 装载 FP32 的模型
-        names = model.names
-        stride = model.stride.max().cpu().numpy()  # 模型步长
-        imgsz = check_img_size(imgsz[0], s=stride)  # 校验输入数据大小
-
-        # 数据装载器
-        dataset = LoadImages(source, img_size=imgsz, stride=stride)
-        nr_sources = 1
-        vid_path, vid_writer = [None] * nr_sources, [None] * nr_sources
-
         # 初始化 StrongSort
         cfg = get_config()
         cfg.merge_from_file(opt.config_strongsort)
 
-        # 如果有多个数据源那么就创建多个 StrongSort
+        # 如果有多个数据源那么就创建多个 StrongSort, 本项目只有一个数据源
+        nr_sources = 1
+        
+        # 设备选择
+        device = 'cuda:0'
+        device = select_device(device)
+        
         strongsort_list = []
         for i in range(nr_sources):
             strongsort_list.append(
@@ -170,11 +166,8 @@ def track(
             strongsort_list[i].model.warmup()
         outputs = [None] * nr_sources
         
-        # 随机框选颜色
-        colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
-
         # FFmpeg 推流配置
-        if output != '0':
+        if str(output).startswith("rtmp://"):
             width, height = 1280, 720
             ffmpeg_cmd = [
                 'ffmpeg',
@@ -212,220 +205,452 @@ def track(
             'Y': 1,
             'G': 2
         }
-        
-        for frame_idx, (path, im, im0s, vid_cap) in enumerate(dataset):
-            print()
-            s = ''
-            t1 = time_synchronized()
-            im = torch.from_numpy(im).to(device)
-            im = im.half() if half else im.float()  # 数据存储形式确认
-            im /= 255.0  # 归一化操作
-            if len(im.shape) == 3:
-                im = im[None]  # 拓展维度
-            t2 = time_synchronized()
-            dt[0] += t2 - t1
 
-            # YOLOv7 模型推理
-            visualize = increment_path(save_dir / Path(path[0]).stem, mkdir=True) if visualize else False
-            pred = model(im)
-            t3 = time_synchronized()
-            dt[1] += t3 - t2
-
-            # NMS 非极大值抑制算法
-            pred = non_max_suppression(pred[0], conf_thres, iou_thres, classes, agnostic_nms)
-            dt[2] += time_synchronized() - t3
+############################################################################################################
+        # 使用 YOLOv7 进行推理
+        if version == 7:
+            # 装载 YOLO 模型
+            model = attempt_load(yolo_weights, map_location=device)  # 装载 FP32 的模型
+            names = model.names
+            stride = model.stride.max().cpu().numpy()  # 模型步长
+            imgsz = check_img_size(imgsz[0], s=stride)  # 校验输入数据大小
             
-            # 开始处理检测内容
-            for i, det in enumerate(pred):  # 逐帧检测
-                seen += 1
+            # 随机框选颜色
+            colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
 
-                p, im0, _ = path, im0s.copy(), getattr(dataset, 'frame', 0)
-                p = Path(p)
-                # 处理视频文件前先进行审查
-                if source.endswith(VID_FORMATS):
-                    save_path = str(save_dir / p.name)
-                else:
-                    raise RuntimeError("(Stream) Unsuporrted foemat.")
+            # 数据装载器
+            dataset = LoadImages(source, img_size=imgsz, stride=stride)
+            vid_path, vid_writer = [None] * nr_sources, [None] * nr_sources
+            
+            for frame_idx, (path, im, im0s, vid_cap) in enumerate(dataset):
+                s = ''
+                t1 = time_synchronized()
+                im = torch.from_numpy(im).to(device)
+                im = im.half() if half else im.float()  # 数据存储形式确认
+                im /= 255.0  # 归一化操作
+                if len(im.shape) == 3:
+                    im = im[None]  # 拓展维度
+                t2 = time_synchronized()
+                dt[0] += t2 - t1
 
-                curr_frames[i] = im0
+                # YOLOv7 模型推理
+                visualize = increment_path(save_dir / Path(path[0]).stem, mkdir=True) if visualize else False
+                pred = model(im)
+                t3 = time_synchronized()
+                dt[1] += t3 - t2
 
-                s += '%gx%g ' % im.shape[2:]
-                imc = im0.copy() if save_crop else im0  # 使用 save_crop 时需要
+                # NMS 非极大值抑制算法
+                pred = non_max_suppression(pred[0], conf_thres, iou_thres, classes, agnostic_nms)
+                print("PRED:", pred)
+                dt[2] += time_synchronized() - t3
+                
+                '''
+                举例讲解 pred 是什么, 下面给出一个 pred 的例子
+                
+                                        x1        y1        x2        y2      conf       cls
+                        [tensor([[  0.9021,  47.2537, 208.8737, 128.3919,   0.8965,   4.0000],
+                                 [137.7647, 486.6285, 175.1410, 621.7339,   0.7649,   2.0000],
+                                 [101.0858, 158.1418, 380.5571, 220.7068,   0.7475,   1.0000],
+                                 [101.7230, 374.8427, 384.3387, 440.0180,   0.7150,   1.0000],
+                                 [310.3580, 491.6929, 328.0681, 617.3266,   0.6717,   3.0000]], device='cuda:0')]
+                                 
+                注意这是一个列表, 里面是一个二维 xyxy-conf-cls 的表格, 最外面表示只有一个源
+                '''
+                
+                # 开始处理检测内容
+                for i, det in enumerate(pred):  # 逐框处理
+                    print("DET.shape =", det.shape, "\n", det)
+                    seen += 1
 
-                if cfg.STRONGSORT.ECC:
-                    strongsort_list[i].tracker.camera_update(prev_frames[i], curr_frames[i])
+                    p, im0, _ = path, im0s.copy(), getattr(dataset, 'frame', 0)
+                    p = Path(p)
+                    # 处理视频文件前先进行审查
+                    if source.endswith(VID_FORMATS):
+                        save_path = str(save_dir / p.name)
+                    else:
+                        raise RuntimeError("(Stream) Unsuporrted foemat.")
 
-                if det is not None and len(det):
-                    # 拉伸变换, 变换回原图片
-                    det[:, :4] = scale_coords(im.shape[2:], det[:, :4], imc.shape).round()
+                    curr_frames[i] = im0
 
-                    # 输出结果, 虽然我给输出关了
-                    for c in det[:, -1].unique():
-                        n = (det[:, -1] == c).sum()
-                        s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "
+                    s += '%gx%g ' % im.shape[2:]
+                    imc = im0.copy() if save_crop else im0  # 使用 save_crop 时需要
 
-                    code, _ = -1, "Error: No execution."
-                    # 将红绿灯数据筛选出来
-                    for _, (xyxy, conf, cls) in enumerate(zip(det[:, 0:4], det[:, 4], det[:, 5])):
-                        conf = float(conf)
-                        cls = int(cls)
+                    if cfg.STRONGSORT.ECC:
+                        strongsort_list[i].tracker.camera_update(prev_frames[i], curr_frames[i])
 
-                        if names[int(cls)] == 'traffic-lights':
-                            crop = imc[int(xyxy[1]):int(xyxy[3]), int(xyxy[0]):int(xyxy[2])]
-                            code, feature = color_dicision_bgr(crop)
-                            
-                            if history is None:
-                                history = feature
-                            else:
-                                # 如果符合转移条件, 那么我们就转移
-                                if history in transpose_condition[feature]:
+                    if det is not None and len(det):
+                        # 拉伸变换, 变换回原图片
+                        det[:, :4] = scale_coords(im.shape[2:], det[:, :4], imc.shape).round()
+
+                        # 输出结果, 虽然我给输出关了
+                        for c in det[:, -1].unique():
+                            n = (det[:, -1] == c).sum()
+                            s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "
+
+                        code, _ = -1, "Error: No execution."
+                        # 将红绿灯数据筛选出来
+                        for _, (xyxy, conf, cls) in enumerate(zip(det[:, 0:4], det[:, 4], det[:, 5])):
+                            conf = float(conf)
+                            cls = int(cls)
+
+                            if names[int(cls)] == 'traffic-lights':
+                                crop = imc[int(xyxy[1]):int(xyxy[3]), int(xyxy[0]):int(xyxy[2])]
+                                code, feature = color_dicision_bgr(crop)
+                                
+                                if history is None:
                                     history = feature
-                                # 如果不符合条件说明出现了错误转移, 回滚到上一个
+                                elif code < 0:
+                                    print("红绿灯处理失败, 错误信息:", feature)
+                                    continue
                                 else:
-                                    feature = history
-                                    code = code_decoder[history]
-                           
-                            c = int(cls)  # 类型为整形数据
-                            status = {
-                                0: ["Red", (0, 0, 255)],
-                                1: ["Yellow", (0, 165, 255)],
-                                2: ["Green", (0, 255, 0)]
-                            }
-                            # 将红绿灯框选出来
-                            label = None if hide_labels else (f'{names[c]}' if hide_conf else \
-                                (f'{conf:.2f}' if hide_class else f'{names[c]} {conf:.2f}'))
-                            plot_one_box(xyxy, im0, label=label+" "+status[code][0], color=status[code][1], line_thickness=2) 
+                                    # 如果符合转移条件, 那么我们就转移
+                                    if history in transpose_condition[feature]:
+                                        history = feature
+                                    # 如果不符合条件说明出现了错误转移, 回滚到上一个
+                                    else:
+                                        feature = history
+                                        code = code_decoder[history]
                             
-                    # 把车辆数据筛选出来
-                    det = det[det[:, 5] == 0]
-                    
-                if det is not None and len(det):
-                    xywhs = xyxy2xywh(det[:, 0:4])
-                    confs = det[:, 4]
-                    clss = det[:, 5]
-                    
-                    # 将识别结果输入到 StrongSort
-                    t4 = time_synchronized()
-                    outputs[i] = strongsort_list[i].update(xywhs.cpu(), confs.cpu(), clss.cpu(), im0)
-                    t5 = time_synchronized()
-                    dt[3] += t5 - t4
-
-                    # 绘图并且可视化
-                    if len(outputs[i]) > 0:
-                        for j, (output, conf) in enumerate(zip(outputs[i], confs)):
-        
-                            bboxes = output[0:4]
-                            id = output[4]
-                            cls = output[5]
-                            
-                            point = (int((bboxes[0] + bboxes[2])/2), int((bboxes[1] + bboxes[3])/2))
-                            if id in tr:
-                                tr[id].append(point)
-                                
-                                cv2.circle(im0, point, 5, colors[int(cls)], -1)
-                                point = (tr[id][-1][0] - tr[id][-2][0], tr[id][-1][1] - tr[id][-2][1])
-                                cv2.arrowedLine(im0, tr[id][-1], (tr[id][-1][0] + 3*point[0], tr[id][-1][1] + 3*point[1]), colors[int(cls)], 2)
-                            else:
-                                tr[id] = [point]
-                                
-                            if True:
-                                # 转移到 DIY 数据格式
-                                bbox_left = output[0]
-                                bbox_top = output[1]
-                                bbox_w = output[2] - output[0]
-                                bbox_h = output[3] - output[1]
-                                # 写入到文件
-                                with open(os.path.join(save_dir, 'trace_frames.txt'), 'a') as f:
-                                    f.write(('%g ' * 11 + '\n') % (frame_idx + 1, id, bbox_left,  # DIY 数据格式
-                                                                bbox_top, bbox_w, bbox_h, -1, -1, -1, i, code))
-
-                            if save_vid or save_crop or show_vid:  # 对车辆进行框选
                                 c = int(cls)  # 类型为整形数据
-                                id = int(id)  # ID 也是整形数据
-                                label = None if hide_labels else (f'{id} {names[c]}' if hide_conf else \
-                                    (f'{id} {conf:.2f}' if hide_class else f'{id} {names[c]} {conf:.2f}'))
-                                plot_one_box(bboxes, im0, label=label, color=colors[int(cls)], line_thickness=2)
+                                status = {
+                                    0: ["Red", (0, 0, 255)],
+                                    1: ["Yellow", (0, 165, 255)],
+                                    2: ["Green", (0, 255, 0)]
+                                }
+                                # 将红绿灯框选出来
+                                label = None if hide_labels else (f'{names[c]}' if hide_conf else \
+                                    (f'{conf:.2f}' if hide_class else f'{names[c]} {conf:.2f}'))
+                                plot_one_box(xyxy, im0, label=label+" "+status[code][0], color=status[code][1], line_thickness=2) 
+                                
+                        # 把车辆数据筛选出来
+                        det = det[det[:, 5] == 0]
+                        
+                    if det is not None and len(det):
+                        xywhs = xyxy2xywh(det[:, 0:4])
+                        confs = det[:, 4]
+                        clss = det[:, 5]
+                        
+                        # 将识别结果输入到 StrongSort
+                        t4 = time_synchronized()
+                        outputs[i] = strongsort_list[i].update(xywhs.cpu(), confs.cpu(), clss.cpu(), im0)
+                        t5 = time_synchronized()
+                        dt[3] += t5 - t4
 
-                    print(f'{s}Done. YOLO:({t3 - t2:.3f}s), StrongSORT:({t5 - t4:.3f}s)')
-
-                else:
-                    strongsort_list[i].increment_ages()
-                    print('No detections')
-
-                joblib.dump(tr, os.path.join(save_dir, "tr.pkl"))
-                
-                # 将掩膜和图片拼合在一起, 并且提高一些亮度
-                im0 = cv2.addWeighted(im0, 0.6, mask, 0.5, 1.2)
-                # 绘制图例
-                im0 = draw_figure_legend(im0, legends)
-                
-                # 流处理尾
-                if show_vid:
-                    cv2.imshow(str(p), im0)
-                    if cv2.waitKey(1) == ord('q'):
-                        raise StopIteration
-                    
-                    if process is not None:
-                        try:
-                            process.stdin.write(cv2.resize(im0, (width, height)).tobytes())
-                        except Exception as e:
-                            print(f"(FFmpeg WriteFrame) Error: {e}")
-
-                # 保存结果
-                if save_vid:
-                    if vid_path[i] != save_path:  # 创建新视频
-                        vid_path[i] = save_path
-                        if isinstance(vid_writer[i], cv2.VideoWriter):
-                            vid_writer[i].release()
-                        if vid_cap:  # 处理视频
-                            fps = vid_cap.get(cv2.CAP_PROP_FPS)
-                            w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                            h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                        else:  # 推流
-                            fps, w, h = 30, im0.shape[1], im0.shape[0]
-                            
-                        save_path = str(Path(save_path).with_suffix('.mp4'))  # 强制使用 H.264
-                        vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
-                    vid_writer[i].write(im0)
-
-                prev_frames[i] = curr_frames[i]
-
-        # 输出结果
-        t = tuple(x / seen * 1E3 for x in dt)  # 计算处理速度
-        print(f'Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS, %.1fms strong sort update per image at shape {(1, 3, imgsz, imgsz)}' % t)
-        if save_txt or save_vid:
-            s = f"\n{len(list(save_dir.glob('tracks/*.txt')))} tracks saved to {save_dir / 'tracks'}" if save_txt else ''
-            print(f"Results saved to {colorstr('bold', save_dir)}{s}")
-        if update:
-            strip_optimizer(yolo_weights)  # 更新模型
+                        # 绘图并且可视化
+                        if len(outputs[i]) > 0:
+                            for j, (output, conf) in enumerate(zip(outputs[i], confs)):
             
-    except KeyboardInterrupt:
-        print("\n(KeyboardInterrupt) User Interrupion")
-    except StopIteration:
-        print("\n(StopIteration) User Interrupion")
-    except Exception as e:
-        print(f"\n(FFmpeg) Error: {e}")
-    finally:
-        if process is not None:
-            try:
-                if process.stdin:
-                    process.stdin.close()
+                                bboxes = output[0:4]
+                                id = output[4]
+                                cls = output[5]
+                                
+                                point = (int((bboxes[0] + bboxes[2])/2), int((bboxes[1] + bboxes[3])/2))
+                                if id in tr:
+                                    tr[id].append(point)
+                                    
+                                    cv2.circle(im0, point, 5, colors[int(cls)], -1)
+                                    point = (tr[id][-1][0] - tr[id][-2][0], tr[id][-1][1] - tr[id][-2][1])
+                                    cv2.arrowedLine(im0, tr[id][-1], (tr[id][-1][0] + 3*point[0], tr[id][-1][1] + 3*point[1]), colors[int(cls)], 2)
+                                else:
+                                    tr[id] = [point]
+                                    
+                                if True:
+                                    # 转移到 DIY 数据格式
+                                    bbox_left = output[0]
+                                    bbox_top = output[1]
+                                    bbox_w = output[2] - output[0]
+                                    bbox_h = output[3] - output[1]
+                                    # 写入到文件
+                                    with open(os.path.join(save_dir, 'trace_frames.txt'), 'a') as f:
+                                        f.write(('%g ' * 11 + '\n') % (frame_idx + 1, id, bbox_left,  # DIY 数据格式
+                                                                    bbox_top, bbox_w, bbox_h, -1, -1, -1, i, code))
+
+                                if save_vid or save_crop or show_vid:  # 对车辆进行框选
+                                    c = int(cls)  # 类型为整形数据
+                                    id = int(id)  # ID 也是整形数据
+                                    label = None if hide_labels else (f'{id} {names[c]}' if hide_conf else \
+                                        (f'{id} {conf:.2f}' if hide_class else f'{id} {names[c]} {conf:.2f}'))
+                                    plot_one_box(bboxes, im0, label=label, color=colors[int(cls)], line_thickness=2)
+
+                        print(f'{s}Done. YOLO:({t3 - t2:.3f}s), StrongSORT:({t5 - t4:.3f}s)')
+
+                    else:
+                        strongsort_list[i].increment_ages()
+                        print('No detections')
+
+                    joblib.dump(tr, os.path.join(save_dir, "tr.pkl"))
+                    
+                    # 将掩膜和图片拼合在一起, 并且提高一些亮度
+                    im0 = cv2.addWeighted(im0, 0.6, mask, 0.5, 1.2)
+                    # 绘制图例
+                    im0 = draw_figure_legend(im0, legends)
+                    
+                    # 流处理尾
+                    if show_vid:
+                        cv2.imshow(str(p), im0)
+                        if cv2.waitKey(1) == ord('q'):
+                            raise StopIteration
+                        
+                        if process is not None:
+                            try:
+                                process.stdin.write(cv2.resize(im0, (width, height)).tobytes())
+                            except Exception as e:
+                                print(f"(FFmpeg WriteFrame) Error: {e}")
+
+                    # 保存结果
+                    if save_vid:
+                        if vid_path[i] != save_path:  # 创建新视频
+                            vid_path[i] = save_path
+                            if isinstance(vid_writer[i], cv2.VideoWriter):
+                                vid_writer[i].release()
+                            if vid_cap:  # 处理视频
+                                fps = vid_cap.get(cv2.CAP_PROP_FPS)
+                                w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                                h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                            else:  # 推流
+                                fps, w, h = 30, im0.shape[1], im0.shape[0]
+                                
+                            save_path = str(Path(save_path).with_suffix('.mp4'))  # 强制使用 H.264
+                            vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
+                        vid_writer[i].write(im0)
+
+                    prev_frames[i] = curr_frames[i]
+
+            # 输出结果
+            t = tuple(x / seen * 1E3 for x in dt)  # 计算处理速度
+            print(f'Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS, %.1fms strong sort update per image at shape {(1, 3, imgsz, imgsz)}' % t)
+            if save_txt or save_vid:
+                s = f"\n{len(list(save_dir.glob('tracks/*.txt')))} tracks saved to {save_dir / 'tracks'}" if save_txt else ''
+                print(f"Results saved to {colorstr('bold', save_dir)}{s}")
+            if update:
+                strip_optimizer(yolo_weights)  # 更新模型
+              
+############################################################################################################  
+        # 使用 YOLOv12 进行推理
+        elif version == 12:
+            model = YOLO(yolo_weights)
+            names = model.names
+            
+            # 随机框选颜色
+            colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
+            
+            # 数据装载器
+            dataset = LoadImages(source, img_size=imgsz, stride=int(max(model.model.stride)))
+            nr_sources = 1
+            vid_path, vid_writer = [None] * nr_sources, [None] * nr_sources
+
+            '''
+            im 形状为 (c, h, w), 而 im0s 形状为 (h, w, c)
+            '''
+            for frame_idx, (path, im, im0s, vid_cap) in enumerate(dataset):
+                s = ''
+                t1 = time_synchronized()
+                # 直接一步计算出结果, 不要时间了
+                visualize = increment_path(save_dir / Path(path[0]).stem, mkdir=True) if visualize else False
+                results = model(im0s)
                 
-                process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                print("(FFmpeg subprocess.TimeoutExpired) FFmpeg process crushed.")
-                process.terminate()
-                try:
-                    process.wait(timeout=2)
-                except subprocess.TimeoutExpired:
-                    process.kill()
-                    process.wait()
-            except Exception as e:
-                print(f"(FFmpeg Exception) Error: {e}")
-    
+                '''
+                我们需要把 pred 变成我们想要的格式, 也就是 cls, x_norm, y_norm, w_norm, h_norm, conf 六维数据, 后面的代码就不动了
+                '''
+                pred = [torch.tensor([[*xyxy, conf, c] for xyxy, conf, c in zip(results[0].boxes.xyxy.cpu().numpy(), results[0].boxes.conf.cpu().numpy(), results[0].boxes.cls.cpu().numpy())], dtype=torch.float32)]
+                t2 = time_synchronized()
+                dt[0] += t2 - t1
+                
+                # 开始处理检测内容
+                for i, det in enumerate(pred):  # 逐源检测
+                    seen += 1
+
+                    p, im0, _ = path, im0s.copy(), getattr(dataset, 'frame', 0)
+                    p = Path(p)
+                    # 处理视频文件前先进行审查
+                    if source.endswith(VID_FORMATS):
+                        save_path = str(save_dir / p.name)
+                    else:
+                        raise RuntimeError("(Stream) Unsuporrted foemat.")
+
+                    curr_frames[i] = im0
+
+                    s += '%gx%g ' % im0.shape[:2]
+                    imc = im0.copy() if save_crop else im0  # 使用 save_crop 时需要
+
+                    if cfg.STRONGSORT.ECC:
+                        strongsort_list[i].tracker.camera_update(prev_frames[i], curr_frames[i])
+
+                    if det is not None and len(det):
+                        # 拉伸变换, 变换回原图片
+                        det[:, :4] = scale_coords(im0.shape[:2], det[:, :4], imc.shape).round()
+
+                        # 输出结果, 虽然我给输出关了
+                        for c in det[:, -1].unique():
+                            n = (det[:, -1] == c).sum()
+                            s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "
+
+                        code, _ = -1, "Error: No execution."
+                        # 将红绿灯数据筛选出来
+                        for _, (xyxy, conf, cls) in enumerate(zip(det[:, 0:4], det[:, 4], det[:, 5])):
+                            conf = float(conf)
+                            cls = int(cls)
+
+                            if names[int(cls)] == 'traffic-lights':
+                                crop = imc[int(xyxy[1]):int(xyxy[3]), int(xyxy[0]):int(xyxy[2])]
+                                code, feature = color_dicision_bgr(crop)
+                                
+                                if history is None:
+                                    history = feature
+                                elif code < 0:
+                                    print("红绿灯处理失败, 错误信息:", feature)
+                                    continue
+                                else:
+                                    # 如果符合转移条件, 那么我们就转移
+                                    if history in transpose_condition[feature]:
+                                        history = feature
+                                    # 如果不符合条件说明出现了错误转移, 回滚到上一个
+                                    else:
+                                        feature = history
+                                        code = code_decoder[history]
+                            
+                                c = int(cls)  # 类型为整形数据
+                                status = {
+                                    0: ["Red", (0, 0, 255)],
+                                    1: ["Yellow", (0, 165, 255)],
+                                    2: ["Green", (0, 255, 0)]
+                                }
+                                # 将红绿灯框选出来
+                                label = None if hide_labels else (f'{names[c]}' if hide_conf else \
+                                    (f'{conf:.2f}' if hide_class else f'{names[c]} {conf:.2f}'))
+                                plot_one_box(xyxy, im0, label=label+" "+status[code][0], color=status[code][1], line_thickness=2) 
+                                
+                        # 把车辆数据筛选出来
+                        det = det[det[:, 5] == 0]
+                        
+                    if det is not None and len(det):
+                        xywhs = xyxy2xywh(det[:, 0:4])
+                        confs = det[:, 4]
+                        clss = det[:, 5]
+                        
+                        # 将识别结果输入到 StrongSort
+                        t3 = time_synchronized()
+                        outputs[i] = strongsort_list[i].update(xywhs.cpu(), confs.cpu(), clss.cpu(), im0)
+                        t4 = time_synchronized()
+                        dt[3] += t4 - t3
+
+                        # 绘图并且可视化
+                        if len(outputs[i]) > 0:
+                            for j, (output, conf) in enumerate(zip(outputs[i], confs)):
+            
+                                bboxes = output[0:4]
+                                id = output[4]
+                                cls = output[5]
+                                
+                                point = (int((bboxes[0] + bboxes[2])/2), int((bboxes[1] + bboxes[3])/2))
+                                if id in tr:
+                                    tr[id].append(point)
+                                    
+                                    cv2.circle(im0, point, 5, colors[int(cls)], -1)
+                                    point = (tr[id][-1][0] - tr[id][-2][0], tr[id][-1][1] - tr[id][-2][1])
+                                    cv2.arrowedLine(im0, tr[id][-1], (tr[id][-1][0] + 3*point[0], tr[id][-1][1] + 3*point[1]), colors[int(cls)], 2)
+                                else:
+                                    tr[id] = [point]
+                                    
+                                if True:
+                                    # 转移到 DIY 数据格式
+                                    bbox_left = output[0]
+                                    bbox_top = output[1]
+                                    bbox_w = output[2] - output[0]
+                                    bbox_h = output[3] - output[1]
+                                    # 写入到文件
+                                    with open(os.path.join(save_dir, 'trace_frames.txt'), 'a') as f:
+                                        f.write(('%g ' * 11 + '\n') % (frame_idx + 1, id, bbox_left,  # DIY 数据格式
+                                                                    bbox_top, bbox_w, bbox_h, -1, -1, -1, i, code))
+
+                                if save_vid or save_crop or show_vid:  # 对车辆进行框选
+                                    c = int(cls)  # 类型为整形数据
+                                    id = int(id)  # ID 也是整形数据
+                                    label = None if hide_labels else (f'{id} {names[c]}' if hide_conf else \
+                                        (f'{id} {conf:.2f}' if hide_class else f'{id} {names[c]} {conf:.2f}'))
+                                    plot_one_box(bboxes, im0, label=label, color=colors[int(cls)], line_thickness=2)
+
+                        print(f'{s}Done. YOLO:({t2 - t1:.3f}s), StrongSORT:({t4 - t3:.3f}s)')
+
+                    else:
+                        strongsort_list[i].increment_ages()
+                        print('No detections')
+
+                    joblib.dump(tr, os.path.join(save_dir, "tr.pkl"))
+                    
+                    # 将掩膜和图片拼合在一起, 并且提高一些亮度
+                    im0 = cv2.addWeighted(im0, 0.6, mask, 0.5, 1.2)
+                    # 绘制图例
+                    im0 = draw_figure_legend(im0, legends)
+                    
+                    # 流处理尾
+                    if show_vid:
+                        cv2.imshow(str(p), im0)
+                        if cv2.waitKey(1) == ord('q'):
+                            raise StopIteration
+                        
+                        if process is not None:
+                            try:
+                                process.stdin.write(cv2.resize(im0, (width, height)).tobytes())
+                            except Exception as e:
+                                print(f"(FFmpeg WriteFrame) Error: {e}")
+
+                    # 保存结果
+                    if save_vid:
+                        if vid_path[i] != save_path:  # 创建新视频
+                            vid_path[i] = save_path
+                            if isinstance(vid_writer[i], cv2.VideoWriter):
+                                vid_writer[i].release()
+                            if vid_cap:  # 处理视频
+                                fps = vid_cap.get(cv2.CAP_PROP_FPS)
+                                w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                                h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                            else:  # 推流
+                                fps, w, h = 30, im0.shape[1], im0.shape[0]
+                                
+                            save_path = str(Path(save_path).with_suffix('.mp4'))  # 强制使用 H.264
+                            vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
+                        vid_writer[i].write(im0)
+
+                    prev_frames[i] = curr_frames[i]
+
+            # 输出结果
+            if save_txt or save_vid:
+                s = f"\n{len(list(save_dir.glob('tracks/*.txt')))} tracks saved to {save_dir / 'tracks'}" if save_txt else ''
+                print(f"Results saved to {colorstr('bold', save_dir)}{s}")
+         
+        # 如果不是 YOLOv7 也不是 YOLOv12
+        else:   
+            raise RuntimeError("Model not in ['YOLOv7', 'YOLOv12']")
+        
+    # except KeyboardInterrupt:
+    #     print("\n(KeyboardInterrupt) User Interrupion")
+    # except StopIteration:
+    #     print("\n(StopIteration) User Interrupion")
+    # except Exception as e:
+    #     print(f"\n(FFmpeg) Error: {e}")
+    # finally:
+    #     if process is not None:
+    #         try:
+    #             if process.stdin:
+    #                 process.stdin.close()
+                
+    #             process.wait(timeout=5)
+    #         except subprocess.TimeoutExpired:
+    #             print("(FFmpeg subprocess.TimeoutExpired) FFmpeg process crushed.")
+    #             process.terminate()
+    #             try:
+    #                 process.wait(timeout=2)
+    #             except subprocess.TimeoutExpired:
+    #                 process.kill()
+    #                 process.wait()
+    #         except Exception as e:
+    #             print(f"(FFmpeg Exception) Error: {e}")
+
     print("Resource cleaned.")
     print(f"YOLOv7 + StrongSort 跟踪后共有 {len(tr)} 个轨迹\n")
     return tr
+    
 
 if __name__ == "__main__":
     opt = parse_opt()

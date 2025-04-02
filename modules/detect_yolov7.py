@@ -12,8 +12,8 @@ from utils.plots import plot_one_box
 from utils.torch_utils import select_device, time_synchronized
 
 def detect_img_path(source=os.path.abspath(os.path.join('source', 'lane.jpg')), 
-                    weights=os.path.abspath(os.path.join('models', 'nanoka-car-valid.pt')), 
-                    view_img=True, save_txt=True, imgsz=640, trace=False, save_img=True, device='0'):
+                    weights=os.path.abspath(os.path.join('models', 'nanoka-car-valid-yolov7.pt')), 
+                    view_img=True, save_txt=True, imgsz=640, save_img=True, device='0'):
     '''
     通过路经的方式使用 YOLOv7 进行检测
     '''

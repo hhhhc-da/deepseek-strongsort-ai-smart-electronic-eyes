@@ -1,1 +1,1 @@
-conda activate eye && python modules\login.py
+conda activate proj && python modules\login.py

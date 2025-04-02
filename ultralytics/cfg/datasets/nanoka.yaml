@@ -1,0 +1,19 @@
+train: E:\\pandownload1\\ML\\Police\\Project\\submodules\\yolov12\\dataset\\train\\images
+val: E:\\pandownload1\\ML\\Police\\Project\\submodules\\yolov12\\dataset\\valid\\images
+test: E:\\pandownload1\\ML\\Police\\Project\\submodules\\yolov12\\dataset\\test\\images
+
+nc: 5
+names: [
+  'car',
+  'cross-line',
+  'left-straight',
+  'straight',
+  'traffic-lights'
+]
+
+roboflow:
+  workspace: nanoka
+  project: lane_simulatior
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/nanoka/lane_simulatior/dataset/1

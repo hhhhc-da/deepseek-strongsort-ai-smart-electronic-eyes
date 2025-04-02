@@ -1,7 +1,21 @@
 # pip install tb_nightly-2.20.0a20250314-py3-none-any.whl
-# pip install -r requirements.txt
 # conda install pytorch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 pytorch-cuda=12.1 -c pytorch -c nvidia
-# Env Python 3.10.16 Windows 11 
+# pip install flash_attn-2.5.8-cp311-cp311-win_amd64.whl
+# pip install -r requirements.txt
+# Env Python 3.10.16 & 3.11.11 Windows 11 
+
+# YOLOv12 ----------------------------------------------
+timm
+albumentations
+onnx
+onnxruntime
+pycocotools
+onnxslim
+onnxruntime-gpu
+gradio
+py-cpuinfo
+huggingface-hub
+safetensors
 
 # StrongSORT ----------------------------------------------
 matplotlib>=3.2.2
@@ -65,10 +79,8 @@ Pygments
 pyparsing
 python-dateutil
 pytz
-PyYAML
 pyzmq
 requests
-scipy
 seaborn
 six
 stack-data
@@ -93,4 +105,4 @@ flask_cors
 pymysql
 cryptography
 paho-mqtt
-aspose-words
+python-docx

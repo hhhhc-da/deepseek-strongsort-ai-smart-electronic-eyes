@@ -1,1 +1,1 @@
-conda activate eye && python submodules\plate\detect_plate.py --detect_model submodules\plate\weights\plate_detect.pt  --rec_model submodules\plate\weights\plate_rec_color.pth --image_path plate_imgs --output runs\plate
+conda activate proj && python submodules\plate\detect_plate.py --detect_model submodules\plate\weights\plate_detect.pt  --rec_model submodules\plate\weights\plate_rec_color.pth --image_path plate_imgs --output runs\plate

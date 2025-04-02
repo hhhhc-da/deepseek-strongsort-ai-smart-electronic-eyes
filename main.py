@@ -13,12 +13,21 @@ import matplotlib.pyplot as plt
 import torch
 from datetime import datetime
 
-# python main.py --source rtmp://192.168.43.234:1935/live/114514 --output rtmp://192.168.43.234:1935/live/1919810 --save-vid
-# python main.py --source source\valid.mp4 --save-vid
+r'''
+使用可以按照以下命令行启动
+
+------------------------- 使用视频推流, 默认使用 YOLOv12 -------------------------
+python main.py --source rtmp://192.168.43.234:1935/live/114514 --output rtmp://192.168.43.234:1935/live/1919810 --save-vid
+
+------------------------- 使用静态视频文件, 使用 YOLOv7 -------------------------
+python main.py --source source\valid.mp4 --yolo-weights E:\pandownload1\ML\Police\Project\models\nanoka-car-valid-yolov7.pt --version 7 --save-vid
+
+------------------------- 使用静态视频文件, 显式使用 YOLOv12 -------------------------
+python main.py --source source\valid.mp4 --yolo-weights E:\pandownload1\ML\Police\Project\models\nanoka-car-valid-yolov12.pt --version 12 --save-vid
+'''
 
 from modules.strongsort import parse_opt, track
 from modules.prepare import extract_frame, load_tr
-from modules.detect_yolov7 import detect_img_path
 from modules.lane import environment_explore, lane_mask_create
 from modules.behavior import predict_behavior_parallel
 from modules.analysis import track_analysis, prompt_create
@@ -31,6 +40,14 @@ def main():
     '''
     # 获取参数信息
     opt = parse_opt()
+    
+    '''我们可以选择使用 YOLOv7 或使用 YOLOv12, 库 API 是完全一致的'''
+    if opt.version == 7:
+        from modules.detect_yolov7 import detect_img_path
+    elif opt.version == 12:
+        from modules.detect_yolov12 import detect_img_path
+    else:
+        raise RuntimeError("不支持的 YOLO 版本")
     
     if opt.source:
         cache = os.path.abspath(os.path.join(".cache", "lane.jpg"))

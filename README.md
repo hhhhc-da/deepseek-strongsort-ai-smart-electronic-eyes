@@ -1,7 +1,7 @@
 # DeepSeek+StrongSort双AI赋能城市智慧交通电子眼
 
 ### 介绍
-AI应用项目 （仅供实验室模拟）
+AI应用项目 （仅供实验室模拟）, 工程使用的环境是 Python 3.11.11 Windows 11 带 conda
 
 ![image](./images/design.png)
 
@@ -21,7 +21,13 @@ AI应用项目 （仅供实验室模拟）
 
 ![image](./images/report.png)
 
-#### 3.  使用 StrongSort 进行物体跟踪和识别
+#### 3.  使用 YOLO + StrongSort 进行物体跟踪和识别
+
+可以选择使用最新的 YOLOv12 来进行推理, 我的模型是从 yolov12n.pt 训练的
+
+![image](./images/yolov12.png)
+
+如果使用了 YOLOv12 就可以考虑不用 YOLOv7 了
 
 ```
 # 可以考虑用本地的视频来模拟验证 (由于大多数改成了绝对路径所以建议这里使用相对路径)
@@ -29,6 +35,15 @@ python main.py --source source\valid.mp4 --save-vid
 
 # 程序还可以直接拉流并推流
 python main.py --source rtmp://192.168.43.234:1935/live/114514 --output rtmp://192.168.43.234:1935/live/1919810 --save-vid
+
+------------------------- 使用视频推流, 默认使用 YOLOv12 -------------------------
+python main.py --source rtmp://192.168.43.234:1935/live/114514 --output rtmp://192.168.43.234:1935/live/1919810 --save-vid
+
+------------------------- 使用静态视频文件, 使用 YOLOv7 -------------------------
+python main.py --source source\valid.mp4 --yolo-weights E:\pandownload1\ML\Police\Project\models\nanoka-car-valid-yolov7.pt --version 7 --save-vid
+
+------------------------- 使用静态视频文件, 显式使用 YOLOv12 -------------------------
+python main.py --source source\valid.mp4 --yolo-weights E:\pandownload1\ML\Police\Project\models\nanoka-car-valid-yolov12.pt --version 12 --save-vid
 ```
 
 ![image](./images/http-flv.png)
@@ -205,8 +220,6 @@ PDF 文件已保存: E:\pandownload1\ML\Police\Project\pdfs\report-2025-04-02 11
 ```
 
 ### 安装教程
-工程使用的环境是 Python 3.10.16 Windows 11 带 conda
-
 ```
 # 创建虚拟环境
 conda create -n eye python=3.10.16
@@ -235,8 +248,6 @@ export CXX=/usr/bin/g++
 然后呢，你需要去 Release 里下载全部的模型文件，因为太大了所以不放在源码这里了
 
 
-
-
 ### 特别鸣谢
 #### 1.  YOLOv7 + StrongSort + OSNet
 
@@ -250,4 +261,11 @@ https://github.com/mikel-brostrom/Yolov7_StrongSORT_OSNet
 ```
 # 项目采用 GPL-3.0 协议
 https://github.com/we0091234/Chinese_license_plate_detection_recognition
+```
+
+#### 3.  YOLOv12
+
+```
+# 项目采用 APGL-3.0 协议
+https://github.com/sunsmarterjie/yolov12
 ```

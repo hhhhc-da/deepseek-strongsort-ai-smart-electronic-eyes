@@ -1,1 +1,1 @@
-conda activate eye && python strongsort.py --source source\valid.mp4 --save-vid
+conda activate proj && python strongsort.py --source source\valid.mp4 --save-vid

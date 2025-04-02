@@ -1,1 +1,1 @@
-conda activate eye && python modules\deepseek.py
+conda activate proj && python modules\deepseek.py
