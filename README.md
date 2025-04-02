@@ -7,8 +7,98 @@ AI应用项目 （仅供实验室模拟）
 
 上面是整个项目的图解
 
+### 使用说明
+
+#### 1.  项目正式接入了 Prompt 的生成和 DeepSeek 交互, 预计未来还要接入 Bert 进行分类
+
+![image](./images/question.png)
+
+程序内其实还是有一些技巧的，比如关键信息抽取
+
+![image](./images/tricks.png)
+
+#### 2.  项目最后会根据分类结果生成一个证书
+
+![image](./images/report.png)
+
+#### 3.  使用 StrongSort 进行物体跟踪和识别
+
 ```
-# 程序输出案例
+# 可以考虑用本地的视频来模拟验证 (由于大多数改成了绝对路径所以建议这里使用相对路径)
+python main.py --source source\valid.mp4 --save-vid
+
+# 程序还可以直接拉流并推流
+python main.py --source rtmp://192.168.43.234:1935/live/114514 --output rtmp://192.168.43.234:1935/live/1919810 --save-vid
+```
+
+![image](./images/http-flv.png)
+
+而我们的主角 StrongSort 则是输出这些数据，不过在最新的工程中我添加了几个维度的信息
+
+![image](./images/strongsort-yolov7.png)
+
+#### 4.  项目的车道线识别完全是基于计算机图形学做的， 建议对接到 PolyLaneNet 这种多项式拟合网络，我提供了对接二次函数的接口
+
+![image](./images/mask_lane.jpg)
+
+这个可以掩膜绘制我们感兴趣的部分, 具体应用到工程里的话就是这样的
+
+![image](./images/masked_image.png)
+
+红绿灯的检测则是使用将 BGR 转换转换为 HSV 格式实现的掩码色相检测，效果还可以, 在项目内还有一个状态转移的控制
+
+![image](./images/color.png)
+
+#### 5.  开启 Deepseek 后端服务器
+
+```
+# 开启后端服务器
+python modules\deepseek.py
+
+# 测试我们的后端
+python modules\chatapi.py
+```
+
+开启之后大概是这样的
+
+![image](./images/deepseek-test1.png)
+
+![image](./images/deepseek-test2.png)
+
+#### 6.  开启后端 Login 验证服务器 ( 如果用WSGI服务器可能有奇妙的东西出现 )
+
+```
+# 后端服务
+python modules\login.py
+
+# 分析我们的行为
+python modules\analysis.py
+```
+
+为什么要这个呢，因为这个内容本身不是为大众开放的，所以为了安全性牺牲了一些了效率，注册每一次的行为，其中用 RandomForest 做了一个基础的检测，可以去看这个项目
+
+<p><strong>基于随机森林算法的网络攻击检测案例 https://github.com/hhhhc-da/attack_detection</strong><p>
+
+![image](./images/vue3.png)
+
+![image](./images/sql.png)
+
+#### 7.  项目训练了一个车辆的行为模式识别 ( 直行、左转、右转、静止、掉头 ) 进行了训练，下面是一些数据预处理的图片
+
+![image](./images/data.png)
+
+之后训练的效果不是很理想，而且在验证视频上 YOLOv7 的默认参数效果不好所以重新训练了一个
+
+![image](./images/yolov7.png)
+
+之后训练了一个行为预测，F1-score 才 75%，勉强凑合用
+
+![image](./images/behavior.png)
+
+![image](./images/perfect-samples.jpg)
+
+#### 8.  程序输出案例
+```
 
 E:\pandownload1\COMPUTER\Anaconda\envs\eye\lib\site-packages\torchreid\reid\metrics\rank.py:11: UserWarning: Cython evaluation (very fast so highly recommended) is unavailable, now use python evaluation.
   warnings.warn(
@@ -18,15 +108,14 @@ llama_model_loader: loaded meta data with 30 key-value pairs and 339 tensors fro
 llama_model_loader: Dumping metadata keys/values. Note: KV overrides do not apply in this output.
 llama_model_loader: - kv   0:                       general.architecture str              = qwen2
 llama_model_loader: - kv   1:                               general.type str              = model
-(超级繁琐我就省略了...)
+(---------------------------------超级繁琐我就省略了---------------------------------)
 
 
 第一帧已保存为: E:\pandownload1\ML\Police\Project\.cache\lane.jpg
 
-YOLOR  acd1bf0 torch 2.5.1 CUDA:0 (NVIDIA GeForce RTX 3050 Laptop GPU, 4095.5MB)
-
 # YOLOv7 输出信息
-(超级繁琐我就省略了...)
+YOLOR  acd1bf0 torch 2.5.1 CUDA:0 (NVIDIA GeForce RTX 3050 Laptop GPU, 4095.5MB)
+(---------------------------------超级繁琐我就省略了---------------------------------)
 
 图片大小为: 540 x 720
 
@@ -145,95 +234,7 @@ export CXX=/usr/bin/g++
 
 然后呢，你需要去 Release 里下载全部的模型文件，因为太大了所以不放在源码这里了
 
-### 使用说明
 
-#### 1.  项目正式接入了 Prompt 的生成和 DeepSeek 交互, 预计未来还要接入 Bert 进行分类
-
-![image](./images/question.png)
-
-程序内其实还是有一些技巧的，比如关键信息抽取
-
-![image](./images/tricks.png)
-
-#### 2.  项目最后会根据分类结果生成一个证书
-
-![image](./images/report.png)
-
-#### 3.  使用 StrongSort 进行物体跟踪和识别
-
-```
-# 可以考虑用本地的视频来模拟验证 (由于大多数改成了绝对路径所以建议这里使用相对路径)
-python main.py --source source\valid.mp4 --save-vid
-
-# 程序还可以直接拉流并推流
-python main.py --source rtmp://192.168.43.234:1935/live/114514 --output rtmp://192.168.43.234:1935/live/1919810 --save-vid
-```
-
-![image](./images/http-flv.png)
-
-而我们的主角 StrongSort 则是输出这些数据，不过在最新的工程中我添加了几个维度的信息
-
-![image](./images/strongsort-yolov7.png)
-
-#### 4.  项目的车道线识别完全是基于计算机图形学做的， 建议对接到 PolyLaneNet 这种多项式拟合网络，我提供了对接二次函数的接口
-
-![image](./images/mask_lane.jpg)
-
-这个可以掩膜绘制我们感兴趣的部分, 具体应用到工程里的话就是这样的
-
-![image](./images/masked_image.png)
-
-红绿灯的检测则是使用将 BGR 转换转换为 HSV 格式实现的掩码色相检测，效果还可以, 在项目内还有一个状态转移的控制
-
-![image](./images/color.png)
-
-#### 5.  开启 Deepseek 后端服务器
-
-```
-# 开启后端服务器
-python modules\deepseek.py
-
-# 测试我们的后端
-python modules\chatapi.py
-```
-
-开启之后大概是这样的
-
-![image](./images/deepseek-test1.png)
-
-![image](./images/deepseek-test2.png)
-
-#### 6.  开启后端 Login 验证服务器 ( 如果用WSGI服务器可能有奇妙的东西出现 )
-
-```
-# 后端服务
-python modules\login.py
-
-# 分析我们的行为
-python modules\analysis.py
-```
-
-为什么要这个呢，因为这个内容本身不是为大众开放的，所以为了安全性牺牲了一些了效率，注册每一次的行为，其中用 RandomForest 做了一个基础的检测，可以去看这个项目
-
-<p><strong>基于随机森林算法的网络攻击检测案例 https://github.com/hhhhc-da/attack_detection</strong><p>
-
-![image](./images/vue3.png)
-
-![image](./images/sql.png)
-
-#### 7.  项目训练了一个车辆的行为模式识别 ( 直行、左转、右转、静止、掉头 ) 进行了训练，下面是一些数据预处理的图片
-
-![image](./images/data.png)
-
-之后训练的效果不是很理想，而且在验证视频上 YOLOv7 的默认参数效果不好所以重新训练了一个
-
-![image](./images/yolov7.png)
-
-之后训练了一个行为预测，F1-score 才 75%，勉强凑合用
-
-![image](./images/behavior.png)
-
-![image](./images/perfect-samples.jpg)
 
 
 ### 特别鸣谢
