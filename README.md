@@ -147,46 +147,23 @@ export CXX=/usr/bin/g++
 
 ### 使用说明
 
-#### 1.  开启 Deepseek 后端服务器
+#### 1.  项目正式接入了 Prompt 的生成和 DeepSeek 交互, 预计未来还要接入 Bert 进行分类
 
-```
-# 开启后端服务器
-uvicorn deepseek:app --host 0.0.0.0 --port 82 --workers 1
+![image](./images/question.png)
 
-# 测试我们的后端
-python chatapi.py
-```
+程序内其实还是有一些技巧的，比如关键信息抽取
 
-开启之后大概是这样的
+![image](./images/tricks.png)
 
-![image](./images/deepseek-test1.png)
+#### 2.  项目最后会根据分类结果生成一个证书
 
-![image](./images/deepseek-test2.png)
-
-
-#### 2.  开启后端 Login 验证服务器 ( 如果用WSGI服务器可能有奇妙的东西出现 )
-
-```
-# 后端服务
-python login.py
-
-# 分析我们的行为
-python analysis.py
-```
-
-为什么要这个呢，因为这个内容本身不是为大众开放的，所以为了安全性牺牲了一些了效率，注册每一次的行为，其中用 RandomForest 做了一个基础的检测，可以去看这个项目
-
-<p><strong>基于随机森林算法的网络攻击检测案例 https://github.com/hhhhc-da/attack_detection</strong><p>
-
-![image](./images/vue3.png)
-
-![image](./images/sql.png)
+![image](./images/report.png)
 
 #### 3.  使用 StrongSort 进行物体跟踪和识别
 
 ```
-# 可以考虑用本地的视频来模拟验证
-python main.py --source E:\pandownload1\ML\Police\Project\source\valid.mp4 --save-vid
+# 可以考虑用本地的视频来模拟验证 (由于大多数改成了绝对路径所以建议这里使用相对路径)
+python main.py --source source\valid.mp4 --save-vid
 
 # 程序还可以直接拉流并推流
 python main.py --source rtmp://192.168.43.234:1935/live/114514 --output rtmp://192.168.43.234:1935/live/1919810 --save-vid
@@ -210,7 +187,41 @@ python main.py --source rtmp://192.168.43.234:1935/live/114514 --output rtmp://1
 
 ![image](./images/color.png)
 
-#### 5.  项目训练了一个车辆的行为模式识别 ( 直行、左转、右转、静止、掉头 ) 进行了训练，下面是一些数据预处理的图片
+#### 5.  开启 Deepseek 后端服务器
+
+```
+# 开启后端服务器
+python modules\deepseek.py
+
+# 测试我们的后端
+python modules\chatapi.py
+```
+
+开启之后大概是这样的
+
+![image](./images/deepseek-test1.png)
+
+![image](./images/deepseek-test2.png)
+
+#### 6.  开启后端 Login 验证服务器 ( 如果用WSGI服务器可能有奇妙的东西出现 )
+
+```
+# 后端服务
+python modules\login.py
+
+# 分析我们的行为
+python modules\analysis.py
+```
+
+为什么要这个呢，因为这个内容本身不是为大众开放的，所以为了安全性牺牲了一些了效率，注册每一次的行为，其中用 RandomForest 做了一个基础的检测，可以去看这个项目
+
+<p><strong>基于随机森林算法的网络攻击检测案例 https://github.com/hhhhc-da/attack_detection</strong><p>
+
+![image](./images/vue3.png)
+
+![image](./images/sql.png)
+
+#### 7.  项目训练了一个车辆的行为模式识别 ( 直行、左转、右转、静止、掉头 ) 进行了训练，下面是一些数据预处理的图片
 
 ![image](./images/data.png)
 
@@ -224,28 +235,16 @@ python main.py --source rtmp://192.168.43.234:1935/live/114514 --output rtmp://1
 
 ![image](./images/perfect-samples.jpg)
 
-#### 6.  项目正式接入了 Prompt 的生成和 DeepSeek 交互, 预计未来还要接入 Bert 进行分类
-
-![image](./images/question.png)
-
-程序内其实还是有一些技巧的，比如关键信息抽取
-
-![image](./images/tricks.png)
-
-#### 7.  项目最后会根据分类结果生成一个证书
-
-![image](./images/report.png)
-
 
 ### 特别鸣谢
-1.  YOLOv7 + StrongSort + OSNet 是这个开源项目：
+#### 1.  YOLOv7 + StrongSort + OSNet
 
 ```
 # 项目采用 GPL-3.0 协议
 https://github.com/mikel-brostrom/Yolov7_StrongSORT_OSNet
 ```
 
-2.  车牌识别是这个开源项目：
+#### 2.  车牌识别
 
 ```
 # 项目采用 GPL-3.0 协议
