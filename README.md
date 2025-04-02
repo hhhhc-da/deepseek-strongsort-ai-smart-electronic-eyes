@@ -7,6 +7,114 @@ AI应用项目 （仅供实验室模拟）
 
 上面是整个项目的图解
 
+```
+# 程序输出案例
+
+E:\pandownload1\COMPUTER\Anaconda\envs\eye\lib\site-packages\torchreid\reid\metrics\rank.py:11: UserWarning: Cython evaluation (very fast so highly recommended) is unavailable, now use python evaluation.
+  warnings.warn(
+
+# LLama 的输出信息
+llama_model_loader: loaded meta data with 30 key-value pairs and 339 tensors from E:\pandownload1\ML\Police\Project\models\DeepSeek-R1-Distill-Qwen-1.5B-Q8_0.gguf (version GGUF V3 (latest))
+llama_model_loader: Dumping metadata keys/values. Note: KV overrides do not apply in this output.
+llama_model_loader: - kv   0:                       general.architecture str              = qwen2
+llama_model_loader: - kv   1:                               general.type str              = model
+(超级繁琐我就省略了...)
+
+
+第一帧已保存为: E:\pandownload1\ML\Police\Project\.cache\lane.jpg
+
+YOLOR  acd1bf0 torch 2.5.1 CUDA:0 (NVIDIA GeForce RTX 3050 Laptop GPU, 4095.5MB)
+
+# YOLOv7 输出信息
+(超级繁琐我就省略了...)
+
+图片大小为: 540 x 720
+
+            class                                        box      conf
+0        straight   [0.664815, 0.866667, 0.037037, 0.197222]  0.669922
+1      cross-line   [0.506481, 0.636111, 0.587037, 0.102778]  0.716309
+2      cross-line  [0.501852, 0.296528, 0.581481, 0.0986111]  0.753906
+3   left-straight  [0.325926, 0.865278, 0.0777778, 0.211111]  0.768066
+4  traffic-lights   [0.215741, 0.136806, 0.431481, 0.126389]  0.921875
+
+        num_ways
+YOLOv7         2
+OpenCV         3 
+
+预测车道线 HIT 区域 x = [34, 270, 507]
+  px_stop_line
+0    x = 34.00
+1   x = 270.50
+2   x = 507.00
+共归类出 3 条车道线
+
+  px_stop_line
+0   y = 495.00
+1   y = 178.00
+停止线预测位置在 y = 495.00
+
+车道线掩码已保存至 E:\pandownload1\ML\Police\Project\.cache\mask_lane.jpg 
+
+YOLOv7 + StrongSort 跟踪后共有 6 个轨迹
+
+    ID           lane  behavior   judge    plate
+0  1.0       straight  straight  Normal  津ABCDEF
+1  2.0       straight  straight  Normal  津ABCDEF
+2  3.0       straight  straight  Normal  津ABCDEF
+3  4.0  left-straight      left  Normal  津ABCDEF
+4  5.0       straight  straight  Normal  津ABCDEF
+5  6.0  left-straight      left  Normal  津ABCDEF 
+
+                                            question
+0  视频第12到119帧，绿灯，车牌津ABCDEF，位于直行车道，正在直行。\n请问视频中有没有...
+1  视频第146到253帧，红灯，车牌津ABCDEF，位于直行车道，正在直行。\n请问视频中有没...
+2  视频第295到372帧，红灯，车牌津ABCDEF，位于直行车道，正在直行。\n请问视频中有没...
+3  视频第411到467帧，红灯，车牌津ABCDEF，位于直行和左转车道，正在左转。\n请问视频...
+4  视频第520到597帧，绿灯，车牌津ABCDEF，位于直行车道，正在直行。\n请问视频中有没...
+5  视频第636到692帧，绿灯，车牌津ABCDEF，位于直行和左转车道，正在左转。\n请问视频...
+
+开始询问 DeepSeek: 视频第12到119帧，绿灯，车牌津ABCDEF，位于直行车道，正在直行。
+请问视频中有没有交通违法行为？请尽可能简短的回答问题。
+DeepSeek 回复信息: 没有交通违法行为*根据提供的信息，车辆津ABCDEF在直行车道内、绿灯下直行，没有交通违法行为。如果你有其他问题，欢迎随时提问。 
+
+开始询问 DeepSeek: 视频第146到253帧，红灯，车牌津ABCDEF，位于直行车道，正在直行。
+请问视频中有没有交通违法行为？请尽可能简短的回答问题。
+DeepSeek 回复信息: 有交通违法行为*根据提供的信息，车辆津ABCDEF在直行车道内、红灯下直行，属于闯红灯，有交通违法行为。如果你有其他问题，欢迎随时提问。 
+
+开始询问 DeepSeek: 视频第295到372帧，红灯，车牌津ABCDEF，位于直行车道，正在直行。
+请问视频中有没有交通违法行为？请尽可能简短的回答问题。
+DeepSeek 回复信息: 没有交通违法行为*根据提供的信息，车辆津ABCDEF在直行车道内、绿灯下直行，没有交通违法行为。如果你有其他问题，欢迎随时提问。 
+
+开始询问 DeepSeek: 视频第411到467帧，红灯，车牌津ABCDEF，位于直行和左转车道，正在左转。
+请问视频中有没有交通违法行为？请尽可能简短的回答问题。
+DeepSeek 回复信息: 有交通违法行为*根据提供的信息，车辆津ABCDEF在直行车道和左转车道内、红灯下左转，属于闯红灯，有交通违法行为。如果你有其他问题，欢迎随时提问。 
+
+开始询问 DeepSeek: 视频第520到597帧，绿灯，车牌津ABCDEF，位于直行车道，正在直行。
+请问视频中有没有交通违法行为？请尽可能简短的回答问题。
+DeepSeek 回复信息: 没有交通违法行为*根据提供的信息，车辆津ABCDEF在直行车道内、绿灯下直行，没有交通违法行为。如果你有其他问题，欢迎随时提问。 
+
+开始询问 DeepSeek: 视频第636到692帧，绿灯，车牌津ABCDEF，位于直行和左转车道，正在左转。
+请问视频中有没有交通违法行为？请尽可能简短的回答问题。
+DeepSeek 回复信息: 没有交通违法行为*根据提供的信息，车辆津ABCDEF在直行车道和左转车道内、绿灯下左转，没有交通违法行为。如果你有其他问题，欢迎随时提问。 
+
+                                               reply
+0  没有交通违法行为*根据提供的信息，车辆津ABCDEF在直行车道内、绿灯下直行，没有交通违法行...
+1  有交通违法行为*根据提供的信息，车辆津ABCDEF在直行车道内、红灯下直行，属于闯红灯，有交...
+2  没有交通违法行为*根据提供的信息，车辆津ABCDEF在直行车道内、绿灯下直行，没有交通违法行...
+3  有交通违法行为*根据提供的信息，车辆津ABCDEF在直行车道和左转车道内、红灯下左转，属于闯...
+4  没有交通违法行为*根据提供的信息，车辆津ABCDEF在直行车道内、绿灯下直行，没有交通违法行...
+5  没有交通违法行为*根据提供的信息，车辆津ABCDEF在直行车道和左转车道内、绿灯下左转，没有...
+
+                                         report_name
+0  report-2025-04-02 11-06-33.263063-d1c471dd-7ef...
+1  report-2025-04-02 11-06-33.263063-ce7b2eb7-782...
+
+PDF 文件已保存: E:\pandownload1\ML\Police\Project\pdfs\report-2025-04-02 11-06-33.263063-d1c471dd-7ef6-4a13-99da-432bc9febd98.pdf
+
+PDF 文件已保存: E:\pandownload1\ML\Police\Project\pdfs\report-2025-04-02 11-06-33.263063-ce7b2eb7-7821-4c37-902a-00c22346c32c.pdf
+
+```
+
 ### 安装教程
 工程使用的环境是 Python 3.10.16 Windows 11 带 conda
 
