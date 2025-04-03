@@ -3,12 +3,6 @@
 ### 介绍
 AI应用项目 （仅供实验室模拟）, 工程使用的环境是 Python 3.11.11 Windows 11 带 conda
 
-![image](./images/design.png)
-
-上面是整个项目的图解
-
-### 使用说明
-
 #### 1.  项目正式接入了 Prompt 的生成和 DeepSeek 交互, 预计未来还要接入 Bert 进行分类
 
 ![image](./images/question.png)
@@ -17,11 +11,11 @@ AI应用项目 （仅供实验室模拟）, 工程使用的环境是 Python 3.11
 
 ![image](./images/tricks.png)
 
-#### 2.  项目最后会根据分类结果生成一个证书
+#### 2.  项目最后会根据分类结果生成一个证书, 这个是基于 Microsoft Word 的, 所以目前仅支持 Windows 操作系统
 
 ![image](./images/report.png)
 
-#### 3.  使用 YOLO + StrongSort 进行物体跟踪和识别
+#### 3.  使用 YOLO + StrongSort 进行物体跟踪和识别, 可选择 YOLOv7 或 YOLOv12
 
 可以选择使用最新的 YOLOv12 来进行推理, 我的模型是从 yolov12n.pt 训练的
 
@@ -64,7 +58,7 @@ python main.py --source source\valid.mp4 --yolo-weights E:\pandownload1\ML\Polic
 
 ![image](./images/color.png)
 
-#### 5.  开启 Deepseek 后端服务器
+#### 5.  基于 LLama 的 Deepseek 后端服务器, 同一时间只能进行一个回复, 目前无法多进程处理, 如果遇到正在生成的情况则会阻塞
 
 ```
 # 开启后端服务器
@@ -80,7 +74,7 @@ python modules\chatapi.py
 
 ![image](./images/deepseek-test2.png)
 
-#### 6.  开启后端 Login 验证服务器 ( 如果用WSGI服务器可能有奇妙的东西出现 )
+#### 6.  后端 Login 验证服务器 ( 如果用WSGI服务器可能有奇妙的东西出现 ), 后面也会加上 MQTT Client 和数据库访问 API, 目前后端还没怎么做
 
 ```
 # 后端服务
@@ -98,7 +92,7 @@ python modules\analysis.py
 
 ![image](./images/sql.png)
 
-#### 7.  项目训练了一个车辆的行为模式识别 ( 直行、左转、右转、静止、掉头 ) 进行了训练，下面是一些数据预处理的图片
+#### 7.  项目训练了一个车辆的行为模式识别 ( 直行、左转、右转、静止、掉头 ) 进行了训练，以 LSTM 为主要结构
 
 ![image](./images/data.png)
 
@@ -112,7 +106,11 @@ python modules\analysis.py
 
 ![image](./images/perfect-samples.jpg)
 
-#### 8.  程序输出案例
+#### 8.  程序数据流图, 这个还是旧版本的
+
+![image](./images/design.png)
+
+#### 9.  程序输出案例
 ```
 
 E:\pandownload1\COMPUTER\Anaconda\envs\eye\lib\site-packages\torchreid\reid\metrics\rank.py:11: UserWarning: Cython evaluation (very fast so highly recommended) is unavailable, now use python evaluation.
