@@ -100,9 +100,6 @@ python main.py --source source\valid.mp4 --yolo-weights E:\pandownload1\ML\Polic
 
 红绿灯的检测则是使用将 BGR 转换转换为 HSV 格式实现的掩码色相检测，效果还可以, 在项目内还有一个状态转移的控制
 
-![image](./images/color.png)
-
-
 #### 5.  后端 Login 验证服务器, 同时支持 MQTT 服务和数据库访问, 实现即时通信
 
 ```
