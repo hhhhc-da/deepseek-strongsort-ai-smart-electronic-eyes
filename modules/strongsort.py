@@ -34,9 +34,10 @@ def parse_opt():
     YOLO + StrongSort 参数列表, 获取所有配置
     '''
     parser = argparse.ArgumentParser()
-    parser.add_argument('--yolo-weights', nargs='+', type=str, default=os.path.abspath(os.path.join('models', 'nanoka-car-valid-yolov12.pt')), help='model.pt path(s)')
+    parser.add_argument('--yolo-weights', nargs='+', type=str, default=os.path.abspath(os.path.join('models', 'nanoka-car-valid-yolov7.pt')), help='model.pt path(s)')
     parser.add_argument('--strong-sort-weights', type=str, default=os.path.abspath(os.path.join('models', 'osnet_x0_25_msmt17.pt')))
     parser.add_argument('--config-strongsort', type=str, default=os.path.abspath(os.path.join('submodules','strongsort','strong_sort','configs','strong_sort.yaml')))
+    parser.add_argument('--url', type=str, default='http://localhost:81', help='HTTP server')
     parser.add_argument('--source', type=str, default='0', help='file/dir/URL/glob, 0 for webcam')
     parser.add_argument('--output', type=str, default='0', help='file/dir/URL/glob, recommanded to use rtmp')
     parser.add_argument('--imgsz', '--img', '--img-size', nargs='+', type=int, default=[640], help='inference size h,w')
@@ -65,7 +66,7 @@ def parse_opt():
     parser.add_argument('--hide-class', default=False, action='store_true', help='hide IDs')
     parser.add_argument('--half', action='store_true', help='use FP16 half-precision inference')
     parser.add_argument('--dnn', action='store_true', help='use OpenCV DNN for ONNX inference')
-    parser.add_argument('--version', default=12, type=int, help='YOLO model version on 7 or 12')
+    parser.add_argument('--version', default=7, type=int, help='YOLO model version on 7 or 12')
     opt = parser.parse_args()
     opt.imgsz *= 2 if len(opt.imgsz) == 1 else 1
 
@@ -107,14 +108,14 @@ def track(
         process=None,  # FFmpeg 句柄
         opt=None,  # 参数列表
         mask=np.zeros((640,640,3), dtype=np.uint8), # 车道线掩码
-        legends={} # 绘制图例用的颜色列表
+        legends={}, # 绘制图例用的颜色列表
+        url="http://localhost:81", # HTTP 服务器地址
 ):
     '''
     StrongSort 跟踪函数, 返回一个跟踪信息字典
     '''
     tr = {}
-    # try:
-    if 1:
+    try:
         VID_FORMATS='asf','avi','gif','m4v','mkv','mov','mp4','mpeg','mpg','ts','wmv' # 视频格式
         source = str(source)
         is_file = Path(source).suffix[1:] in (VID_FORMATS)
@@ -241,7 +242,6 @@ def track(
 
                 # NMS 非极大值抑制算法
                 pred = non_max_suppression(pred[0], conf_thres, iou_thres, classes, agnostic_nms)
-                print("PRED:", pred)
                 dt[2] += time_synchronized() - t3
                 
                 '''
@@ -259,7 +259,6 @@ def track(
                 
                 # 开始处理检测内容
                 for i, det in enumerate(pred):  # 逐框处理
-                    print("DET.shape =", det.shape, "\n", det)
                     seen += 1
 
                     p, im0, _ = path, im0s.copy(), getattr(dataset, 'frame', 0)
@@ -623,29 +622,29 @@ def track(
         else:   
             raise RuntimeError("Model not in ['YOLOv7', 'YOLOv12']")
         
-    # except KeyboardInterrupt:
-    #     print("\n(KeyboardInterrupt) User Interrupion")
-    # except StopIteration:
-    #     print("\n(StopIteration) User Interrupion")
-    # except Exception as e:
-    #     print(f"\n(FFmpeg) Error: {e}")
-    # finally:
-    #     if process is not None:
-    #         try:
-    #             if process.stdin:
-    #                 process.stdin.close()
+    except KeyboardInterrupt:
+        print("\n(KeyboardInterrupt) User Interrupion")
+    except StopIteration:
+        print("\n(StopIteration) User Interrupion")
+    except Exception as e:
+        print(f"\n(FFmpeg) Error: {e}")
+    finally:
+        if process is not None:
+            try:
+                if process.stdin:
+                    process.stdin.close()
                 
-    #             process.wait(timeout=5)
-    #         except subprocess.TimeoutExpired:
-    #             print("(FFmpeg subprocess.TimeoutExpired) FFmpeg process crushed.")
-    #             process.terminate()
-    #             try:
-    #                 process.wait(timeout=2)
-    #             except subprocess.TimeoutExpired:
-    #                 process.kill()
-    #                 process.wait()
-    #         except Exception as e:
-    #             print(f"(FFmpeg Exception) Error: {e}")
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                print("(FFmpeg subprocess.TimeoutExpired) FFmpeg process crushed.")
+                process.terminate()
+                try:
+                    process.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait()
+            except Exception as e:
+                print(f"(FFmpeg Exception) Error: {e}")
 
     print("Resource cleaned.")
     print(f"YOLOv7 + StrongSort 跟踪后共有 {len(tr)} 个轨迹\n")

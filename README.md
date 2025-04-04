@@ -3,15 +3,63 @@
 ### 介绍
 AI应用项目 （仅供实验室模拟）, 工程使用的环境是 Python 3.11.11 Windows 11 带 conda
 
+### 安装教程
+```
+# 创建虚拟环境
+conda create -n eye python=3.10.16
+conda activate eye
+
+# 先安装 tb-nightly
+pip install tb_nightly-2.20.0a20250314-py3-none-any.whl
+
+# 之后正常安装 requirements.txt 和 torch CUDA
+pip install -r requirements.txt
+conda install pytorch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 pytorch-cuda=12.1 -c pytorch -c nvidia
+```
+
+由于他里面需要安装 llama-cpp-python，所以我们还需要配置编译环境，我在 Ubuntu 下测试有问题，这样解决
+
+```
+# 基本的更新和安装
+apt update && apt upgrade -y
+apt install build-essential cmake
+
+# 配置编译环境
+export CC=/usr/bin/gcc
+export CXX=/usr/bin/g++
+```
+
+然后呢，你需要去 Release 里下载全部的模型文件，因为太大了所以不放在源码这里了
+
+### 详细内容
+
+我们的项目分为以下几个内容
+
+
+
 #### 1.  项目正式接入了 Prompt 的生成和 DeepSeek 交互, 预计未来还要接入 Bert 进行分类
+
+基于 LLama 的 Deepseek 后端服务器, 同一时间只能进行一个回复, 目前无法多进程处理, 如果遇到正在生成的情况则会阻塞
 
 ![image](./images/question.png)
 
-程序内其实还是有一些技巧的，比如关键信息抽取
+使用方法如下
 
-![image](./images/tricks.png)
+```
+# 开启后端服务器
+python modules\deepseek.py
+
+# 测试我们的后端
+python modules\chatapi.py
+```
+
+我们最后的输出是这样的
+
+![image](./images/output.png)
 
 #### 2.  项目最后会根据分类结果生成一个证书, 这个是基于 Microsoft Word 的, 所以目前仅支持 Windows 操作系统
+
+当然你可以用 docx2pdf 那种可以运行在 libreoffice 上所以也可以支持 Linux, 不过 Windows 下可能因为收费了所以不能用
 
 ![image](./images/report.png)
 
@@ -42,10 +90,6 @@ python main.py --source source\valid.mp4 --yolo-weights E:\pandownload1\ML\Polic
 
 ![image](./images/http-flv.png)
 
-而我们的主角 StrongSort 则是输出这些数据，不过在最新的工程中我添加了几个维度的信息
-
-![image](./images/strongsort-yolov7.png)
-
 #### 4.  项目的车道线识别完全是基于计算机图形学做的， 建议对接到 PolyLaneNet 这种多项式拟合网络，我提供了对接二次函数的接口
 
 ![image](./images/mask_lane.jpg)
@@ -58,23 +102,8 @@ python main.py --source source\valid.mp4 --yolo-weights E:\pandownload1\ML\Polic
 
 ![image](./images/color.png)
 
-#### 5.  基于 LLama 的 Deepseek 后端服务器, 同一时间只能进行一个回复, 目前无法多进程处理, 如果遇到正在生成的情况则会阻塞
 
-```
-# 开启后端服务器
-python modules\deepseek.py
-
-# 测试我们的后端
-python modules\chatapi.py
-```
-
-开启之后大概是这样的
-
-![image](./images/deepseek-test1.png)
-
-![image](./images/deepseek-test2.png)
-
-#### 6.  后端 Login 验证服务器 ( 如果用WSGI服务器可能有奇妙的东西出现 ), 后面也会加上 MQTT Client 和数据库访问 API, 目前后端还没怎么做
+#### 5.  后端 Login 验证服务器, 同时支持 MQTT 服务和数据库访问, 实现即时通信
 
 ```
 # 后端服务
@@ -82,6 +111,9 @@ python modules\login.py
 
 # 分析我们的行为
 python modules\analysis.py
+
+# 监听 MQTT 服务
+python modules\mqtt_client.py
 ```
 
 为什么要这个呢，因为这个内容本身不是为大众开放的，所以为了安全性牺牲了一些了效率，注册每一次的行为，其中用 RandomForest 做了一个基础的检测，可以去看这个项目
@@ -92,21 +124,31 @@ python modules\analysis.py
 
 ![image](./images/sql.png)
 
-#### 7.  项目训练了一个车辆的行为模式识别 ( 直行、左转、右转、静止、掉头 ) 进行了训练，以 LSTM 为主要结构
+我们的后端是开启在一台 Linux 服务器上的, 配置好域名和服务之后才可以正常使用, 对 mosquitto 进行如下配置
+
+![image](./images/mosquitto_conf.png)
+
+之后我们用 MQTTX 去测试我们的服务器看能否正常运行
+
+![image](./images/mqttx.png)
+
+#### 6.  项目训练了一个车辆的行为模式识别 ( 直行、左转、右转、静止、掉头 ) 进行了训练，以 LSTM 为主要结构
+
+这个图片是具体的预处理方法，包含了模长归一化、方向归一化
 
 ![image](./images/data.png)
 
-之后训练的效果不是很理想，而且在验证视频上 YOLOv7 的默认参数效果不好所以重新训练了一个
-
-![image](./images/yolov7.png)
-
-之后训练了一个行为预测，F1-score 才 75%，勉强凑合用
+训练出来效果不怎么好，F1-score 才 75%，勉强凑合用用
 
 ![image](./images/behavior.png)
 
+下面的图片是具体的测试，点是从红色运动到蓝色的
+
 ![image](./images/perfect-samples.jpg)
 
-#### 8.  程序数据流图, 这个还是旧版本的
+#### 8.  程序数据流图, 这个还是旧版本的（使用 YOLOV7 作为主要目标检测器）
+
+凑合看，里面比如 MQTT 部分、邮箱验证部分还没有实现
 
 ![image](./images/design.png)
 
@@ -216,34 +258,6 @@ PDF 文件已保存: E:\pandownload1\ML\Police\Project\pdfs\report-2025-04-02 11
 PDF 文件已保存: E:\pandownload1\ML\Police\Project\pdfs\report-2025-04-02 11-06-33.263063-ce7b2eb7-7821-4c37-902a-00c22346c32c.pdf
 
 ```
-
-### 安装教程
-```
-# 创建虚拟环境
-conda create -n eye python=3.10.16
-conda activate eye
-
-# 先安装 tb-nightly
-pip install tb_nightly-2.20.0a20250314-py3-none-any.whl
-
-# 之后正常安装 requirements.txt 和 torch CUDA
-pip install -r requirements.txt
-conda install pytorch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 pytorch-cuda=12.1 -c pytorch -c nvidia
-```
-
-由于他里面需要安装 llama-cpp-python，所以我们还需要配置编译环境，我在 Ubuntu 下测试有问题，这样解决
-
-```
-# 基本的更新和安装
-apt update && apt upgrade -y
-apt install build-essential cmake
-
-# 配置编译环境
-export CC=/usr/bin/gcc
-export CXX=/usr/bin/g++
-```
-
-然后呢，你需要去 Release 里下载全部的模型文件，因为太大了所以不放在源码这里了
 
 
 ### 特别鸣谢

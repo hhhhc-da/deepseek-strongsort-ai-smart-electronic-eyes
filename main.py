@@ -12,6 +12,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import torch
 from datetime import datetime
+import requests
 
 r'''
 使用可以按照以下命令行启动
@@ -106,6 +107,26 @@ def main():
             for dc in rst:
                 # 生成对应的 PDF 证书
                 create_windows_format_report(dc)
+                
+                # dc 字典案例
+                # {
+                #     "datetime_report": "2025-04-04",
+                #     "plate": "津ABCDEF",
+                #     "report": "车辆津ABCDEF在直行车道内、绿灯下左转，属于闯红灯加左转未按交通信号灯，有交通违法行为。如果你有其他问题，欢迎随时提问。",
+                #     "administrator": "审核员 A-103",
+                #     "template_path": "E:\\pandownload1\\ML\\Police\\Project\\source\\report.docx",
+                #     "report_output_path": "E:\\pandownload1\\ML\\Police\\Project\\pdfs\\report-2025-04-04 20-37-47.507592-e84ebe2e-b3d0-45db-bded-90bec4d7ebe0.pdf"
+                # }
+                
+                data = {
+                    "security": "86fb269d190d2c85f6e0468ceca42a20",
+                    "plate": dc['plate'],
+                    "text": dc['report'],
+                    "real": -1
+                }
+                
+                # 将数据发送到后端上传数据库
+                requests.post(opt.url + '/upload', json=data)
         else:
             print("视频提取失败, 请检查视频是否规范")
     else:

@@ -1,1 +1,0 @@
-conda activate proj && python modules\login.py

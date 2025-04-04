@@ -1,1 +1,0 @@
-conda activate proj && python strongsort.py --source source\valid.mp4 --save-vid

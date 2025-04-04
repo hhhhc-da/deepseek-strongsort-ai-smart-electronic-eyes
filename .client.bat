@@ -1,0 +1,1 @@
+conda activate proj && python modules\mqtt_client.py
