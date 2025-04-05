@@ -6,7 +6,14 @@ import numpy as np
 from modules.prepare import transform_ndarray_to_string
 from modules.lane import extract_ranges
 from modules.plate import extract_plate
+import time
+import paho.mqtt.client as mqtt
 
+# 配置好 MQTT 代理
+broker = "www.ayasaki-nanoka.xyz"
+port = 30001
+username = "admin"
+password = "admin"
 
 def attack_classify(model_path=os.path.join('models', 'random_forest_model.pkl'), db_url='mysql+pymysql://nanoka:12345678n@localhost:3308/manage'):
     '''
@@ -30,8 +37,8 @@ def attack_classify(model_path=os.path.join('models', 'random_forest_model.pkl')
                 0 
             ) AS rate_failure_login_post,
             COUNT( DISTINCT PORT ) AS num_port,
-            COALESCE ( SUM( IFNULL( LENGTH( body ), 0 )), 0 ) AS total_body_length,
-            COALESCE ( SUM( IFNULL( LENGTH( REGEXP_REPLACE ( body, '[a-zA-Z0-9 ]', '' )), 0 )), 0 ) AS special_characters_length 
+            COALESCE ( SUM( IFNULL( LENGTH( REGEXP_REPLACE ( body, '[a-zA-Z0-9 ]', '' )), 0 )), 0 ) AS special_characters_length,
+            COALESCE ( SUM( IFNULL( LENGTH( body ), 0 )), 0 ) AS total_body_length
         FROM
             web 
         WHERE
@@ -181,6 +188,18 @@ def prompt_create(lnpf, tr_txt=os.path.abspath(os.path.join("runs", "track", "ex
     return pf
     
 
-if __name__ == '__main__':
-    i, s = attack_classify()
-    print(pd.DataFrame({'认证数字' : i, '攻击类型': [s]}).T)
+def analysis_main(time_gap=5):
+    '''
+    每隔一定时间检测一次, 之后将数据发送到 MQTT 服务器
+    '''
+    client = mqtt.Client()
+    client.username_pw_set(username, password)
+    client.connect(broker, port, 60)
+    
+    while True:
+        i, s = attack_classify()
+        print(pd.DataFrame({'认证数字' : [i], '攻击类型': [s]}).T)
+        
+        # if i != 0:
+        client.publish("awa", "{" + '"Event": 0, "Code": {}, "Type": "{}"'.format(i, s) + "}")
+        time.sleep(time_gap)

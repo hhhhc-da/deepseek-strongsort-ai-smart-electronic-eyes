@@ -6,15 +6,21 @@ AI应用项目 （仅供实验室模拟）, 工程使用的环境是 Python 3.11
 ### 安装教程
 ```
 # 创建虚拟环境
-conda create -n eye python=3.10.16
-conda activate eye
+conda create -n proj python=3.11.11
+conda activate proj
 
 # 先安装 tb-nightly
-pip install tb_nightly-2.20.0a20250314-py3-none-any.whl
+pip install whl\tb_nightly-2.20.0a20250314-py3-none-any.whl
 
-# 之后正常安装 requirements.txt 和 torch CUDA
-pip install -r requirements.txt
+# 然后安装带 CUDA 支持的 PyTorch
 conda install pytorch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 pytorch-cuda=12.1 -c pytorch -c nvidia
+
+# 之后安装 Flash attention
+pip install whl\flash_attn-2.5.8-cp311-cp311-win_amd64.whl
+
+# 之后正常安装 requirements.txt
+pip install -r requirements.txt
+
 ```
 
 由于他里面需要安装 llama-cpp-python，所以我们还需要配置编译环境，我在 Ubuntu 下测试有问题，这样解决
@@ -90,17 +96,7 @@ python main.py --source source\valid.mp4 --yolo-weights E:\pandownload1\ML\Polic
 
 ![image](./images/http-flv.png)
 
-#### 4.  项目的车道线识别完全是基于计算机图形学做的， 建议对接到 PolyLaneNet 这种多项式拟合网络，我提供了对接二次函数的接口
-
-![image](./images/mask_lane.jpg)
-
-这个可以掩膜绘制我们感兴趣的部分, 具体应用到工程里的话就是这样的
-
-![image](./images/masked_image.png)
-
-红绿灯的检测则是使用将 BGR 转换转换为 HSV 格式实现的掩码色相检测，效果还可以, 在项目内还有一个状态转移的控制
-
-#### 5.  后端 Login 验证服务器, 同时支持 MQTT 服务和数据库访问, 实现即时通信
+#### 4.  后端 Login 验证服务器, 同时支持 MQTT 服务和数据库访问, 实现即时通信
 
 ```
 # 后端服务
@@ -128,6 +124,20 @@ python modules\mqtt_client.py
 之后我们用 MQTTX 去测试我们的服务器看能否正常运行
 
 ![image](./images/mqttx.png)
+
+我们开启一个新的终端用来做网络防护，当检测到网络攻击并且状态发生改变时，发送邮件
+
+![image](./images/attack.png)
+
+#### 5.  项目的车道线识别完全是基于计算机图形学做的， 建议对接到 PolyLaneNet 这种多项式拟合网络，我提供了对接二次函数的接口
+
+![image](./images/mask_lane.jpg)
+
+这个可以掩膜绘制我们感兴趣的部分, 具体应用到工程里的话就是这样的
+
+![image](./images/masked_image.png)
+
+红绿灯的检测则是使用将 BGR 转换转换为 HSV 格式实现的掩码色相检测，效果还可以, 在项目内还有一个状态转移的控制
 
 #### 6.  项目训练了一个车辆的行为模式识别 ( 直行、左转、右转、静止、掉头 ) 进行了训练，以 LSTM 为主要结构
 

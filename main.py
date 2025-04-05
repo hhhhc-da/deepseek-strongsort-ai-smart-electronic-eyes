@@ -13,6 +13,8 @@ import matplotlib.pyplot as plt
 import torch
 from datetime import datetime
 import requests
+import threading
+import time
 
 r'''
 使用可以按照以下命令行启动

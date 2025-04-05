@@ -106,3 +106,4 @@ pymysql
 cryptography
 paho-mqtt
 python-docx
+scikit-learn

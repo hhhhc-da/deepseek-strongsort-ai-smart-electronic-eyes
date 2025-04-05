@@ -1,1 +1,1 @@
-conda activate proj && python modules\mqtt_client.py
+conda activate proj && python modules\mail_server.py

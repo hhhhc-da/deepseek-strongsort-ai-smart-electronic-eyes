@@ -189,7 +189,7 @@ def deepseek_upload_data():
 
     # 访问数据库
     try:
-        sql = "SELECT hash FROM security;"
+        sql = "SELECT hash FROM security WHERE name = 'upload';"
         cursor.execute(sql)
         result = cursor.fetchall()
         
@@ -209,7 +209,62 @@ def deepseek_upload_data():
         app.logger.error(f"Error in uploading data: {e}")
         db.rollback()
         return jsonify({'Code': -3, 'Error': 'Database error'}), 500
-  
+
+@app.route('/security', methods=['POST'])
+def security_main():
+    '''
+    接收来自程序的数据, 用于记录有没有被攻击
+    '''
+    data = request.get_json()
+    if not data:
+        return jsonify({'Code': -2, 'Error': 'No JSON data received'}), 400
+
+    credit = data.get('security')
+    code = data.get('code')
+    
+    # 检查秘钥是否为空
+    if not credit:
+        return jsonify({'Code': -2, 'Error': 'Missing username or password'}), 400
+
+    # 访问数据库
+    try:
+        sql = "SELECT hash FROM security WHERE name = 'classify';"
+        cursor.execute(sql)
+        result = cursor.fetchall()
+        
+        # 身份验证
+        hash = result[0][0] if result else None
+        if hash is None or hash != credit:
+            # 身份验证失败
+            return jsonify({'Code': -1, 'Error': 'Invalid token'}), 401
+
+        # 上传数据库
+        sql = "SELECT code FROM status;"
+        cursor.execute(sql)
+        result = cursor.fetchall()
+        
+        # 旧状态比对 
+        old_code = result[0][0] if result else None
+        if old_code is None:
+            return jsonify({'Code': -3, 'Error': 'Database error'}), 401
+        
+        change_flag = 0
+        if old_code != code:
+            change_flag = 1
+            
+        # 更新数据库
+        sql = "UPDATE status SET code = %s, time = NOW();"
+        cursor.execute(sql, (code))
+        db.commit()
+            
+        return jsonify({'Code': 0, 'Message': 'Upload successfully', 'Change': change_flag}), 200
+    
+    except Exception as e:
+        app.logger.error(f"Error in uploading data: {e}")
+        db.rollback()
+        return jsonify({'Code': -3, 'Error': 'Database error'}), 500
+
+
 @app.before_request
 def before_request():
     '''
