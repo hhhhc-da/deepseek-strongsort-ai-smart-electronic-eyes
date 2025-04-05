@@ -17,7 +17,7 @@ def extract_ranges(arr):
     基于梯度的检测, 本质就是切割出转点
     '''
     # 找到异常点 index
-    indices = np.where(np.abs(arr) < 1e-2)[0]
+    indices = np.where(np.abs(arr) > 1e-2)[0]
     if len(indices) == 0:
         return []
     

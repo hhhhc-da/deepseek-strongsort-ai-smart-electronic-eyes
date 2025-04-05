@@ -151,6 +151,7 @@ def prompt_create(lnpf, tr_txt=os.path.abspath(os.path.join("runs", "track", "ex
         "right-straight": "直行和右转",
         "left-right": "左转和右转",
         "left-uturn": "左转和掉头",
+        "unknown": "未知"
     }
     
     questions = []

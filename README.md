@@ -39,8 +39,9 @@ export CXX=/usr/bin/g++
 
 ### 详细内容
 
-我们的项目分为以下几个内容
+![gif](./images/video.gif)
 
+我们的项目分为以下几个内容
 
 
 #### 1.  项目正式接入了 Prompt 的生成和 DeepSeek 交互, 预计未来还要接入 Bert 进行分类
