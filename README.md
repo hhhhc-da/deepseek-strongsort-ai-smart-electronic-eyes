@@ -3,6 +3,8 @@
 ### 介绍
 AI应用项目 （仅供实验室模拟）, 工程使用的环境是 Python 3.11.11 Windows 11 带 conda
 
+![gif](./images/video.gif)
+
 ### 安装教程
 ```
 # 创建虚拟环境
@@ -38,8 +40,6 @@ export CXX=/usr/bin/g++
 然后呢，你需要去 Release 里下载全部的模型文件，因为太大了所以不放在源码这里了
 
 ### 详细内容
-
-![gif](./images/video.gif)
 
 我们的项目分为以下几个内容
 
