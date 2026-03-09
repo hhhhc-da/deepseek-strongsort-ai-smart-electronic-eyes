@@ -1,0 +1,19 @@
+{
+  "pages": {
+    "apps": {
+      "title": "Apps",
+      "description": "Apps description",
+      "filters": {
+        "placeholder": "Filter apps...",
+        "types": {
+          "all": "All",
+          "connected": "Connected",
+          "notConnected": "Not connected"
+        }
+      }
+    },
+    "marketing": {
+      "title": "Home"
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "premium": {
+    "premium": "premium",
+    "UpgradeNow": "Upgrade Now"
+  },
+  "login": "Login",
+  "register": "Register",
+  "language": "English",
+  "changeLanguage": "Change Language",
+  "common": {
+    "appName": "Shadcn Vue Admin",
+    "languages": {
+      "en": "English",
+      "zh": "中文"
+    }
+  }
+}

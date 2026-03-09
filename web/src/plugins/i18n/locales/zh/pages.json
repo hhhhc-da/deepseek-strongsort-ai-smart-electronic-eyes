@@ -1,0 +1,19 @@
+{
+  "pages": {
+    "apps": {
+      "title": "应用",
+      "description": "应用描述",
+      "filters": {
+        "placeholder": "筛选应用...",
+        "types": {
+          "all": "全部",
+          "connected": "已连接",
+          "notConnected": "未连接"
+        }
+      }
+    },
+    "marketing": {
+      "title": "首页"
+    }
+  }
+}

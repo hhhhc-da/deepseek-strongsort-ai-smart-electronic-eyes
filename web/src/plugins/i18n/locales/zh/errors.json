@@ -1,0 +1,28 @@
+{
+  "errors": {
+    "unauthorized": {
+      "title": "未授权",
+      "description": "你没有权限访问此页面。"
+    },
+    "forbidden": {
+      "title": "禁止访问",
+      "description": "你没有权限访问此页面。"
+    },
+    "notFound": {
+      "title": "页面未找到",
+      "description": "你访问的页面可能已被移除、名称已更改或暂时不可用。"
+    },
+    "internal": {
+      "title": "服务器内部错误",
+      "description": "服务器遇到意外情况，无法完成请求。"
+    },
+    "maintenance": {
+      "title": "服务不可用",
+      "description": "服务器因临时超载或维护，暂时无法处理请求。"
+    },
+    "actions": {
+      "back": "返回上一页",
+      "backHome": "返回首页"
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "errors": {
+    "unauthorized": {
+      "title": "Unauthorized",
+      "description": "You are not authorized to access this page."
+    },
+    "forbidden": {
+      "title": "Forbidden",
+      "description": "You are not authorized to access this page."
+    },
+    "notFound": {
+      "title": "Page Not Found",
+      "description": "The page you are looking for might have been removed, had its name changed, or is temporarily unavailable."
+    },
+    "internal": {
+      "title": "Internal Server Error",
+      "description": "The server encountered an unexpected condition which prevented it from fulfilling the request."
+    },
+    "maintenance": {
+      "title": "Service Unavailable",
+      "description": "The server is currently unable to handle the request due to a temporary overloading or maintenance of the server."
+    },
+    "actions": {
+      "back": "Go Back",
+      "backHome": "Back to Home"
+    }
+  }
+}

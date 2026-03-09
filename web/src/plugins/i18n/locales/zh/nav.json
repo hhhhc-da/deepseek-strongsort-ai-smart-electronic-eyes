@@ -1,0 +1,52 @@
+{
+  "nav": {
+    "sidebar": {
+      "groups": {
+        "general": "通用",
+        "pages": "页面",
+        "other": "其他"
+      },
+      "items": {
+        "dashboard": "仪表盘",
+        "tasks": "任务",
+        "apps": "应用",
+        "users": "用户",
+        "aiTalk": "AI 对话示例",
+        "auth": "认证",
+        "errors": "错误页",
+        "settings": "设置",
+        "svaComponents": "SVA 组件",
+        "helpCenter": "帮助中心",
+        "plansPricing": "方案与定价"
+      },
+      "auth": {
+        "signIn": "登录",
+        "signInTwoCol": "登录（双栏）",
+        "signUp": "注册",
+        "forgotPassword": "忘记密码",
+        "otp": "验证码"
+      },
+      "errors": {
+        "unauthorized401": "401 | 未授权",
+        "forbidden403": "403 | 禁止访问",
+        "notFound404": "404 | 未找到",
+        "internal500": "500 | 服务器错误",
+        "maintenance503": "503 | 维护中"
+      },
+      "settings": {
+        "profile": "个人资料",
+        "account": "账号",
+        "appearance": "外观",
+        "notifications": "通知",
+        "display": "显示"
+      }
+    },
+    "command": {
+      "pages": "页面",
+      "searchMenu": "搜索菜单",
+      "inputPlaceholder": "输入命令或搜索...",
+      "emptyTitle": "未找到菜单。",
+      "emptyDescription": "试试搜索命令或检查拼写。"
+    }
+  }
+}

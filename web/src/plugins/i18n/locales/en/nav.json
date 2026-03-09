@@ -1,0 +1,52 @@
+{
+  "nav": {
+    "sidebar": {
+      "groups": {
+        "general": "General",
+        "pages": "Pages",
+        "other": "Other"
+      },
+      "items": {
+        "dashboard": "Dashboard",
+        "tasks": "Tasks",
+        "apps": "Apps",
+        "users": "Users",
+        "aiTalk": "Ai Talk Example",
+        "auth": "Auth",
+        "errors": "Errors",
+        "settings": "Settings",
+        "svaComponents": "SVA Components",
+        "helpCenter": "Help Center",
+        "plansPricing": "Plans & Pricing"
+      },
+      "auth": {
+        "signIn": "Sign In",
+        "signInTwoCol": "Sign In (2 Col)",
+        "signUp": "Sign Up",
+        "forgotPassword": "Forgot Password",
+        "otp": "OTP"
+      },
+      "errors": {
+        "unauthorized401": "401 | Unauthorized",
+        "forbidden403": "403 | Forbidden",
+        "notFound404": "404 | Not Found",
+        "internal500": "500 | Internal Server Error",
+        "maintenance503": "503 | Maintenance Error"
+      },
+      "settings": {
+        "profile": "Profile",
+        "account": "Account",
+        "appearance": "Appearance",
+        "notifications": "Notifications",
+        "display": "Display"
+      }
+    },
+    "command": {
+      "pages": "Pages",
+      "searchMenu": "Search Menu",
+      "inputPlaceholder": "Type a command or search...",
+      "emptyTitle": "No menu found.",
+      "emptyDescription": "Try searching for a command or check the spelling."
+    }
+  }
+}

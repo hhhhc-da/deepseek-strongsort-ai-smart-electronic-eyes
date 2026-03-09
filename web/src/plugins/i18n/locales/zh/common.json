@@ -1,0 +1,17 @@
+{
+  "premium": {
+    "premium": "会员计划",
+    "UpgradeNow": "现在升级"
+  },
+  "login": "登录",
+  "register": "注册",
+  "language": "中文",
+  "changeLanguage": "语言切换",
+  "common": {
+    "appName": "Shadcn Vue Admin",
+    "languages": {
+      "en": "English",
+      "zh": "中文"
+    }
+  }
+}

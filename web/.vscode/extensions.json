@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "antfu.pnpm-catalog-lens",
+    "dbaeumer.vscode-eslint",
+    "bradlc.vscode-tailwindcss",
+    "vue.volar",
+    "streetsidesoftware.code-spell-checker"
+  ]
+}
