@@ -1,0 +1,16 @@
+lxml
+torchvision
+xmljson
+scipy
+tabulate
+numpy
+ujson
+matplotlib
+imgaug
+tqdm
+opencv_python
+efficientnet_pytorch
+torch
+progressbar33
+PyYAML
+scikit-learn

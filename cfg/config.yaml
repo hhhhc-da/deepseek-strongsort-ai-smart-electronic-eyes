@@ -1,0 +1,26 @@
+llm:
+  llm-server: remote # 可选项: local, remote
+  chatglm-api: 854ac1b5d560463fb293fd1c69309d84.KBHHhVhHxLqvFS6E
+  prompt: E:\pandownload1\ML\Police\Project\cfg\prompt.txt
+  llama-path: E:\pandownload1\ML\Police\Project\models\DeepSeek-R1-Distill-Qwen-1.5B-Q8_0.gguf
+
+attack:
+  model: E:\pandownload1\ML\Police\Project\models\random_forest_model.pkl
+
+mqtt:
+  broker: localhost
+  port: 8081
+  username: admin
+  password: admin
+
+smtp:
+  server: smtp.163.com
+  port: 465
+  username: zhengbindesu@163.com
+  token: EC8L8ZqQymxwBS4z
+  receivers:
+    - zhengbindesu@gmail.com
+
+http:
+  server: http://127.0.0.1:81
+  prefix: /api
