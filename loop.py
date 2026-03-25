@@ -71,10 +71,6 @@ def main():
             'command': ['cmd', '/c', r'conda activate proj && python monitor.py'],
             'cwd': os.path.join('modules')
         },
-        # {
-        #     'command': ['cmd', '/c', r'conda activate proj && python modules\monitor.py'],
-        #     'cwd': '.'
-        # },
     ]
     
     with ThreadPoolExecutor(max_workers=6) as executor:

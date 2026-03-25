@@ -140,7 +140,6 @@ cython_debug/
 whl/
 *.log
 
-plate/
 yolov12/
 *.pth
 
@@ -150,3 +149,4 @@ models\
 node_modules\
 dist\
 .env.local
+.cache

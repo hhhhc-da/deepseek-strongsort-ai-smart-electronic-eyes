@@ -36,7 +36,8 @@ class StreamProcessor:
         redis_key: str = 'track',
         tracker=None,
         enable_push: bool = True,
-        enable_save: bool = False
+        enable_save: bool = False,
+        signal_analyzer = None
     ):
         self.init_time = datetime.datetime.now()
         self.split_sec = split_sec
@@ -112,6 +113,9 @@ class StreamProcessor:
         if not self.car_class_ids:
             print(f"警告：模型中未找到 '{self.target_class}' 类别，将使用所有类别")
             self.car_class_ids = None
+
+        self.signal_analyzer = signal_analyzer
+        self.traffic_light_key = 'traffic_light_info'
 
     def _handle_sigint(self, signum: int, frame):
         try:
@@ -494,6 +498,7 @@ class StreamProcessor:
                 raise RuntimeError("无法初始化切片保存进程")
 
         print(f"开始处理 | 推流: {'开启' if self.enable_push else '关闭'} | 保存: {'开启' if self.enable_save else '关闭'} | 切片配置: 每 {self.split_sec} 秒 / {self.frames_per_slice} 帧一个切片 | 按 Ctrl+C 停止处理")
+        self.current_slice_idx -= 1
         self._init_progress_bar()
 
         self.processing_start_time = datetime.datetime.now()
@@ -531,6 +536,31 @@ class StreamProcessor:
                         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
 
                 results = self.model(frame, device=self.device, verbose=False)
+
+                # 处理红绿灯检测部分
+                if self.signal_analyzer is not None and (not self.signal_analyzer.check_mask()):
+                    traffic_light_indices = [i for i, cls in enumerate(results[0].boxes.cls) if cls.item() == 9]
+                    if traffic_light_indices:
+                        for index in traffic_light_indices:
+                            box = results[0].boxes[index]
+                            self.signal_analyzer.apply_mask(xyxy=box.xyxy[0].cpu().numpy().astype(int))
+
+
+                color_code = self.signal_analyzer.update(frame)
+                self.bar.set_postfix({"color_code": color_code})
+                # with open("color.txt", "+a") as f:
+                #     f.write("{}\n".format(color_code))
+                
+                if color_code >= 0:
+                    color_str = self.signal_analyzer.color_mapping(color_code)
+
+                    redis_data = {
+                        "frame": self.total_frames_processed,
+                        "color": color_str
+                    }
+                    self.redis_handler.rpush(self.traffic_light_key, json.dumps(redis_data))
+
+                # 继续处理我们剩余的部分
                 results = self._filter_detections(results)
                 
                 frame_with_boxes = results[0].plot(img=frame.copy(), conf=True, line_width=self.line_thickness)
@@ -611,7 +641,7 @@ class StreamProcessor:
             print(f"处理异常: {e}")
             traceback.print_exc()
         finally:
-            print(f"处理统计 - 总帧数: {self.total_frames_processed} | 总切片数: {self.current_slice_idx}")
+            print(f"处理统计 - 总帧数: {self.total_frames_processed} | 总切片数: {self.current_slice_idx + 1}")
             self.stop_all_processes()
 
 if __name__ == "__main__":

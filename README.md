@@ -1,11 +1,10 @@
-# DeepSeek+StrongSort双AI赋能城市智慧交通电子眼
+# AI 赋能城市智慧交通电子眼
 ---
 
-
 ### 介绍
-AI应用项目 （仅供实验室模拟）, 工程使用的环境是 Python 3.11.11 Windows 11 带 conda
+智能应用项目（仅供实验室模拟）, 工程使用的环境是 `Python 3.11.11 Windows 11` 带 `anaconda`，最后出来的检测结果类似于：
 
-![gif](./images/video.gif)
+![gif](./images/ret.gif)
 
 ### 安装教程
 ```
@@ -13,7 +12,7 @@ AI应用项目 （仅供实验室模拟）, 工程使用的环境是 Python 3.11
 conda create -n proj python=3.11.11
 conda activate proj
 
-# 先安装 tb-nightly，Windows 环境下要单独装
+# 先安装 tb-nightly，Windows 环境下要单独装，自己找一个版本下载吧
 pip install whl\tb_nightly-2.20.0a20250314-py3-none-any.whl
 
 # 然后安装带 CUDA 支持的 PyTorch，不过我建议用 pip 装更省心
@@ -27,7 +26,7 @@ pip install -r requirements.txt
 
 ```
 
-由于他里面需要安装 llama-cpp-python，所以我们还需要配置编译环境，我在 Ubuntu 下测试有问题，这样解决
+由于他里面需要安装 `llama-cpp-python`，所以我们还需要配置编译环境，我在 `Ubuntu` 下测试有问题，这样解决：
 
 ```
 # 基本的更新和安装
@@ -39,251 +38,343 @@ export CC=/usr/bin/gcc
 export CXX=/usr/bin/g++
 ```
 
-然后呢，你需要去 Release 里下载全部的模型文件，因为太大了所以不放在源码这里了
+然后呢，你需要去 Release 里下载全部的模型文件，然后覆盖掉 models 内的模型们。
 
-不过已经好久没有更新 Release 了
+**启动所有文件！！！**
+
+```bash
+python initialize.py  # 用于切割车道线掩膜（运行完自动退出）
+python loop.py        # 用于开启阻塞式进程（阻塞式运行）
+python main.py        # 用于分析视频和输出（运行完自动退出）
+
+# 想测试有没有问题？试试 test.py 吧
+python test.py --env        # 仅测试 EnvAnalyzer 是否正常
+python text.py --report     # 仅测试 PDF 接口是否正常
+```
 
 ### 详细内容
 
-我们的项目分为以下几个内容
+我们的项目分为以下几个内容：
 
+#### 1.  NLP 部分
 
-#### 1.  项目正式接入了 Prompt 的生成和 DeepSeek 交互, 预计未来还要接入 Bert 进行分类
+`DeepSeekServe` 后端控制器，用于管理 `Llama-2` 的输出，在此基础上封装 `LargeLanguageModelManager`。
 
-基于 LLama 的 Deepseek 后端服务器, 同一时间只能进行一个回复, 目前无法多进程处理, 如果遇到正在生成的情况则会阻塞
+详情可以参考 `modules\agent.py`，有很方便的切换函数，也可以封装进其他的内容。
 
-![image](./images/question.png)
+并且本模块已经被单独拆解：
 
-使用方法如下
-
-```
-# 开启后端服务器
-python modules\deepseek.py
-
-# 测试我们的后端
-python modules\chatapi.py
+```bash
+git clone https://github.com/hhhhc-da/llm-manager-ethink-export-gpt.git
 ```
 
-我们最后的输出是这样的
+最后使用 `Bert` 进行 `LLM` 输出分类，一般这种级别都上 `Workflow` 了，不过还是坚持了手写，详见 `source\bert`。
 
-![image](./images/output.png)
+![image](./images/bert_c.png)
 
-#### 2.  项目最后会根据分类结果生成一个证书, 这个是基于 Microsoft Word 的, 所以目前仅支持 Windows 操作系统
 
-当然你可以用 docx2pdf 那种可以运行在 libreoffice 上所以也可以支持 Linux, 不过 Windows 下可能因为收费了所以不能用
+#### 2.  Word to PDF
 
-![image](./images/report.png)
+因为我用的是 `Windows` 所以这一部分调用了 `MicroSoft Office` 哦，`Linux` 用户请额外注意。
 
-#### 3.  使用 YOLO + StrongSort 进行物体跟踪和识别, 可选择 YOLOv7 或 YOLOv12
+![image](./images/pdf.png)
 
-可以选择使用最新的 YOLOv12 来进行推理, 我的模型是从 yolov12n.pt 训练的
+#### 3.  Video 部分
 
-![image](./images/yolov12.png)
+已经重新编写了 `Video` 部分的推理逻辑, 将 `YOLOv12` 直接封装进了 `modules\processor.py`，反正会的人会自己换成 `ultralytics` 去切换版本的，我就不费那个功夫单独拆出来前置 `Object detection` 模块了。
 
-如果使用了 YOLOv12 就可以考虑不用 YOLOv7 了
+我们通过视觉算法直接计算出来的车道环境，还是有较强的假设的，如果你换了视频请也一起分析一下（代码来自 `modules.analyzer.EnvAnalyzer`）:
 
-```
-# 可以考虑用本地的视频来模拟验证 (由于大多数改成了绝对路径所以建议这里使用相对路径)
-python main.py --source source\valid.mp4 --save-vid
-
-# 程序还可以直接拉流并推流
-python main.py --source rtmp://192.168.43.234:1935/live/114514 --output rtmp://192.168.43.234:1935/live/1919810 --save-vid
-
-------------------------- 使用视频推流, 默认使用 YOLOv12 -------------------------
-python main.py --source rtmp://192.168.43.234:1935/live/114514 --output rtmp://192.168.43.234:1935/live/1919810 --save-vid
-
-------------------------- 使用静态视频文件, 使用 YOLOv7 -------------------------
-python main.py --source source\valid.mp4 --yolo-weights E:\pandownload1\ML\Police\Project\models\nanoka-car-valid-yolov7.pt --version 7 --save-vid
-
-------------------------- 使用静态视频文件, 显式使用 YOLOv12 -------------------------
-python main.py --source source\valid.mp4 --yolo-weights E:\pandownload1\ML\Police\Project\models\nanoka-car-valid-yolov12.pt --version 12 --save-vid
-```
-
-![image](./images/http-flv.png)
-
-#### 4.  后端 Login 验证服务器, 同时支持 MQTT 服务和数据库访问, 实现即时通信
-
-```
-# 后端服务
-python modules\login.py
-
-# 分析我们的行为
-python modules\analysis.py
-
-# 监听 MQTT 服务
-python modules\mqtt_client.py
+```python
+class EnvAnalyzer():
+    # 省略很多内容，自己搜索一下这个函数
+    def _cv_analyze_lane_info(self):
+        '''
+        计算车道线信息, 最后输出绘制好的掩膜
+        '''
+        self._cv_fetch_image( # 读取信息到 self.init_image, 无锁
+            path = r'E:\pandownload1\ML\Police\Project\source\lane.jpg', 
+            method = 'local'
+        )
+        # 特征转换和滤波
+        threshold = self._cv_feature_convert()
+        # 斑马线信息识别, 输出 y 过滤范围
+        non_zero_indices = self._cv_zebra_crossing_recognize(threshold)
+        # 寻找 lane 信息
+        zebra_contours, new_edges = self._cv_find_target_area(threshold, non_zero_indices)
+        # 梯形拟合, 寻找目标区域, 输出梯形角点 (可能是 4 或 5 个角点)
+        # 如果是 5 个角点, 还需要额外做一些保护措施
+        corrected_corners, trapezoid_pts = self._cv_fit_trapezoid(zebra_contours, new_edges)
+        # 逆透视变换, 归一化图像特征信息, 准备使用 Inception v3 进行识别
+        bird_view = self._cv_image_crop_transform(threshold, corrected_corners, trapezoid_pts)
+        # 车道信息识别, 全面识别所有信息, 这一步输入的俯视图应已经是干净的图像数据
+        lane_info_list, whole_lane_info_list, final_arrows = self._cv_analyze_marks(bird_view)
+        # 使用 Inception v3 进行识别
+        preds_idx, preds_conf = self.__run_inception_predict(self.inception_model, final_arrows)
+        # 生成我们最终的掩膜数据
+        return self._cv_mask_generate(lane_info_list, whole_lane_info_list, preds_idx, preds_conf)
 ```
 
-为什么要这个呢，因为这个内容本身不是为大众开放的，所以为了安全性牺牲了一些了效率，注册每一次的行为，其中用 RandomForest 做了一个基础的检测，可以去看这个项目
+处理完 `lane.jpg` 之后就修改特征转换函数 `_cv_feature_convert`，这一步直接决定后续能不能正常分析出来。
 
-<p><strong>基于随机森林算法的网络攻击检测案例 https://github.com/hhhhc-da/attack_detection</strong><p>
+![image](./images/lane.png)
 
-![image](./images/vue3.png)
+后续就是 `YOLOv12` + `StrongSort` + `OSNet` 的常规跟踪了，最后还有一个小目标过滤，需要将屏幕上方的小目标过滤，也是需要衡量后续优化的。
 
-![image](./images/sql.png)
+#### 4.  MQTT + SMTP + HTTP 部分，巡检 MySQL
 
-我们的后端是开启在一台 Linux 服务器上的, 配置好域名和服务之后才可以正常使用, 对 mosquitto 进行如下配置
+随便写写，反正都封装进去了，`modules\analyzer` 里全是这个封装，总之就是用类去描述各种事务。
 
-![image](./images/mosquitto_conf.png)
+#### 5.  瓶颈
 
-之后我们用 MQTTX 去测试我们的服务器看能否正常运行
+1. 计算机视觉切割第一步语义省略与二值化信息转换
 
-![image](./images/mqttx.png)
-
-我们开启一个新的终端用来做网络防护，当检测到网络攻击并且状态发生改变时，发送邮件
-
-![image](./images/attack.png)
-
-#### 5.  项目的车道线识别完全是基于计算机图形学做的， 建议对接到 PolyLaneNet 这种多项式拟合网络，我提供了对接二次函数的接口
-
-![image](./images/mask_lane.jpg)
-
-这个可以掩膜绘制我们感兴趣的部分, 具体应用到工程里的话就是这样的
-
-![image](./images/masked_image.png)
-
-红绿灯的检测则是使用将 BGR 转换转换为 HSV 格式实现的掩码色相检测，效果还可以, 在项目内还有一个状态转移的控制
-
-#### 6.  项目训练了一个车辆的行为模式识别 ( 直行、左转、右转、静止、掉头 ) 进行了训练，以 LSTM 为主要结构
-
-这个图片是具体的预处理方法，包含了模长归一化、方向归一化
+2. 这个智障路径分析模型（其实是最近 bro 忙爆了没训）
 
 ![image](./images/data.png)
 
-训练出来效果不怎么好，F1-score 才 75%，勉强凑合用用
+3. 小目标检测和跟踪区域划定（目前是 0.3y 硬切割）
 
-![image](./images/behavior.png)
+4. LLM 的检索增强生成处理，没有挂知识库也没有优化 Prompt
 
-下面的图片是具体的测试，点是从红色运动到蓝色的
+别的也就那样了。
 
-![image](./images/perfect-samples.jpg)
+#### 6.  程序输出案例
 
-#### 8.  程序输出案例
+`initialize.py` 输出如下：
+
+```txt
+非阻塞启动命令: cmd /c conda activate proj && python modules\analyzer.py --env (PID: 32448)
+所有业务任务已后台启动，主程序继续运行...
+PID:32448 状态: 运行中
+所有后台任务已启动, 准备执行主函数...
+所有子进程已退出，主程序退出
 ```
 
-E:\pandownload1\COMPUTER\Anaconda\envs\eye\lib\site-packages\torchreid\reid\metrics\rank.py:11: UserWarning: Cython evaluation (very fast so highly recommended) is unavailable, now use python evaluation.
-  warnings.warn(
+`loop.py` 输出如下：
 
-# LLama 的输出信息
-llama_model_loader: loaded meta data with 30 key-value pairs and 339 tensors from E:\pandownload1\ML\Police\Project\models\DeepSeek-R1-Distill-Qwen-1.5B-Q8_0.gguf (version GGUF V3 (latest))
-llama_model_loader: Dumping metadata keys/values. Note: KV overrides do not apply in this output.
-llama_model_loader: - kv   0:                       general.architecture str              = qwen2
-llama_model_loader: - kv   1:                               general.type str              = model
-(---------------------------------超级繁琐我就省略了---------------------------------)
+```txt
+非阻塞启动命令: mosquitto.exe -c mosquitto.conf (PID: 13104)
+MQTT 服务已后台启动，2秒后启动其他任务...
+非阻塞启动命令: cmd /c npm run dev (PID: 32048)
+非阻塞启动命令: cmd /c conda activate proj && python modules\app.py --verbose (PID: 38656)
+非阻塞启动命令: cmd /c conda activate proj && python app.py (PID: 28452)
+非阻塞启动命令: cmd /c conda activate proj && python monitor.py (PID: 33844)
+所有业务任务已后台启动，主程序继续运行...
+PID:13104 状态: 运行中
+PID:32048 状态: 运行中
+PID:38656 状态: 运行中
+PID:28452 状态: 运行中
+PID:33844 状态: 运行中
+所有后台任务已启动，主程序进入循环（按Ctrl+C退出）...
+
+接收到退出信号，开始清理...
+已终止进程 PID: 13104
+已终止进程 PID: 32048
+已终止进程 PID: 38656
+已终止进程 PID: 28452
+已终止进程 PID: 33844
+```
+
+`main.py` 输出如下：
+
+```txt
+删除 Redis 存储的旧数据
+开始处理 Video 并制作基础切片
+Model: osnet_x0_25
+- params: 203,568
+- flops: 82,316,000
+Successfully loaded pretrained weights from "E:\pandownload1\ML\Police\Project\models\osnet_x0_25_msmt17.pt"
+** The following layers are discarded due to unmatched keys or layer size: ['classifier.weight', 'classifier.bias']
+(1, 256, 128, 3)
+{'ECC': False, 'MC_LAMBDA': 0.5, 'EMA_ALPHA': 0.9, 'MAX_DIST': 0.7, 'MAX_IOU_DISTANCE': 0.5, 'MAX_AGE': 5, 'N_INIT': 20, 'NN_BUDGET': 100}
+
+---------------------- StrongSort 初始化报告 ----------------------
+                                                        StrongSort
+init time                                      2026-03-25 19:45:50
+max det                                                       1000
+device                                                      cuda:0
+save directory    E:\pandownload1\ML\Police\Project\runs\track\exp
+ecc                                                          False
+mc lambda                                                      0.5
+ema alpha                                                      0.9
+max dist                                                       0.7
+max iou distance                                               0.5
+max age                                                          5
+n init                                                          20
+nn budget                                                      100
+YOLO 模型加载完成：设备=cuda:0 | 置信度阈值=0.7
+Redis 连接响应成功
+文件信息 - 总帧数: 1077 | 实际帧率: 25.00fps | 总切片数: 5 | 每切片帧数: 250
+捕获进程启动成功 | 分辨率: 1920x1080 | 帧率: 25.00 | 源类型: 文件
+切片 0 保存进程启动成功 (PID: 12260) -> runs\live\stream_000000.mp4
+开始处理 | 推流: 关闭 | 保存: 开启 | 切片配置: 每 10 秒 / 250 帧一个切片 | 按 Ctrl+C 停止处理
+处理切片 0/5: 100%|█████████████████████████████████████████████████████████| 250/250 [00:25<00:00,  9.62帧/s, color_code=2]
+切片 0 处理完成 (累计帧数: 250)
+处理切片 1/5:   0%|                                                                                 | 0/250 [00:00<?, ?帧/s] 进程 (PID: 12260) 已正常关闭
+切片 1 保存进程启动成功 (PID: 29988) -> runs\live\stream_000001.mp4
+处理切片 1/5: 100%|█████████████████████████████████████████████████████████| 250/250 [00:22<00:00, 11.25帧/s, color_code=2]
+切片 1 处理完成 (累计帧数: 500)
+处理切片 2/5:   0%|                                                                                 | 0/250 [00:00<?, ?帧/s] 进程 (PID: 29988) 已正常关闭
+切片 2 保存进程启动成功 (PID: 34356) -> runs\live\stream_000002.mp4
+处理切片 2/5: 100%|█████████████████████████████████████████████████████████| 250/250 [00:24<00:00, 10.19帧/s, color_code=2] 
+切片 2 处理完成 (累计帧数: 750)
+处理切片 3/5:   0%|                                                                                 | 0/250 [00:00<?, ?帧/s] 进程 (PID: 34356) 已正常关闭
+切片 3 保存进程启动成功 (PID: 36188) -> runs\live\stream_000003.mp4
+处理切片 3/5: 100%|█████████████████████████████████████████████████████████| 250/250 [00:16<00:00, 15.15帧/s, color_code=0]
+切片 3 处理完成 (累计帧数: 1000)
+处理切片 4/5:   0%|                                                                                 | 0/250 [00:00<?, ?帧/s] 进程 (PID: 36188) 已正常关闭
+切片 4 保存进程启动成功 (PID: 13196) -> runs\live\stream_000004.mp4
+处理切片 4/5:  31%|██████████████████                                        | 78/250 [00:05<00:11, 15.27帧/s, color_code=0]
+最后一个切片 4 处理完成 (累计帧数: 1077)
+进程 (PID: 13196) 已正常关闭
+视频文件处理完成
+处理统计 - 总帧数: 1077 | 总切片数: 5
+开始执行分析与预测
+Redis 连接成功
+
+---------------------- BehaviorAnalyzer 运行报告 ----------------------
+                                  BehaviorAnalyzer
+method                                        deep
+classifier                   _core_Behavior_Module
+model_path  models\behavior_model_d1sigma_silu.pth
+device                                      cuda:0
+label           STOP, LEFT, STRAIGHT, RIGHT, UTURN
+成功加载 Prompt 模板: 
+[{'role': 'system', 'content': '你是一个专业的智能助手，回答简洁、准确，只说中文，字数限制在100字以内。'}]
+
+模型运行在 cuda:0 上
+Loading weights: 100%|████████████████████| 199/199 [00:00<00:00, 2809.52it/s, Materializing param=bert.pooler.dense.weight]
+BertForSequenceClassification LOAD REPORT from: bert-base-chinese
+Key                                        | Status     |
+-------------------------------------------+------------+-
+cls.predictions.transform.dense.weight     | UNEXPECTED |
+cls.predictions.transform.dense.bias       | UNEXPECTED |
+cls.seq_relationship.weight                | UNEXPECTED |
+cls.seq_relationship.bias                  | UNEXPECTED |
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED |
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED |
+cls.predictions.bias                       | UNEXPECTED |
+classifier.weight                          | MISSING    |
+classifier.bias                            | MISSING    |
+
+Notes:
+- UNEXPECTED    :can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING       :those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+
+---------------------- ReportExporter 运行报告 ----------------------
+                                                      ReportExporter
+output_dir                                              runs\reports
+supported_formats                                               docx
+items              datetime_report, plate, report, administrator,...
+
+-------------------- 开始复制 Redis 备份轨迹数据 --------------------
+管道批量复制 12 条数据完成
+
+-------------------- 开始读取 Redis 轨迹数据 --------------------
+Redis 列表中共有 12 条数据待处理
+轨迹 1 新增 112 个坐标点，累计 112 个
+轨迹 1 帧范围：24 ~ 135
+轨迹 6 新增 149 个坐标点，累计 149 个
+轨迹 6 帧范围：62 ~ 210
+轨迹 7 新增 85 个坐标点，累计 85 个
+轨迹 7 帧范围：212 ~ 296
+轨迹 8 新增 108 个坐标点，累计 108 个
+轨迹 8 帧范围：315 ~ 422
+轨迹 11 新增 65 个坐标点，累计 65 个
+轨迹 11 帧范围：440 ~ 504
+轨迹 9 新增 145 个坐标点，累计 145 个
+轨迹 9 帧范围：404 ~ 548
+轨迹 12 新增 47 个坐标点，累计 47 个
+轨迹 12 帧范围：525 ~ 571
+轨迹 13 新增 92 个坐标点，累计 92 个
+轨迹 13 帧范围：571 ~ 662
+轨迹 15 新增 66 个坐标点，累计 66 个
+轨迹 15 帧范围：608 ~ 673
+轨迹 20 新增 60 个坐标点，累计 60 个
+轨迹 20 帧范围：698 ~ 757
+轨迹 23 新增 47 个坐标点，累计 47 个
+轨迹 23 帧范围：745 ~ 791
+轨迹 24 新增 70 个坐标点，累计 70 个
+轨迹 24 帧范围：925 ~ 994
+处理完成 | 共读取 12 条 Redis 记录 | 聚合得到 12 条完整轨迹
+
+-------------------- 轨迹有效性校验 --------------------
+√ 有效 | 轨迹    1 | 起点区域: 红色车道 (1)     | 轨迹长度: 112 | 帧范围: 24~135
+√ 有效 | 轨迹    6 | 起点区域: 红色车道 (1)     | 轨迹长度: 149 | 帧范围: 62~210
+X 无效 | 轨迹    7 | 起点区域: 无效区域 (0)     | 轨迹长度:  85 | 帧范围: 212~296
+X 无效 | 轨迹    8 | 起点区域: 无效区域 (0)     | 轨迹长度: 108 | 帧范围: 315~422
+X 无效 | 轨迹   11 | 起点区域: 无效区域 (0)     | 轨迹长度:  65 | 帧范围: 440~504
+√ 有效 | 轨迹    9 | 起点区域: 红色车道 (1)     | 轨迹长度: 145 | 帧范围: 404~548
+X 无效 | 轨迹   12 | 起点区域: 无效区域 (0)     | 轨迹长度:  47 | 帧范围: 525~571
+√ 有效 | 轨迹   13 | 起点区域: 红色车道 (1)     | 轨迹长度:  92 | 帧范围: 571~662
+√ 有效 | 轨迹   15 | 起点区域: 红色车道 (1)     | 轨迹长度:  66 | 帧范围: 608~673
+X 无效 | 轨迹   20 | 起点区域: 无效区域 (0)     | 轨迹长度:  60 | 帧范围: 698~757
+X 无效 | 轨迹   23 | 起点区域: 无效区域 (0)     | 轨迹长度:  47 | 帧范围: 745~791
+X 无效 | 轨迹   24 | 起点区域: 无效区域 (0)     | 轨迹长度:  70 | 帧范围: 925~994
+
+-------------------- 生成 LSTM 输入特征 --------------------
+特征生成完成 | 特征形状: torch.Size([5, 99, 2]) (样本数, 序列长度, 特征维度)
+
+-------------------- LSTM 行为分类结果 --------------------
+轨迹ID:    1 | 起点车道: 红色车道 (1) | 行为类型: straight | 类别码: 2 | 帧范围: 925~135
+轨迹ID:    6 | 起点车道: 红色车道 (1) | 行为类型: straight | 类别码: 2 | 帧范围: 925~210
+轨迹ID:    9 | 起点车道: 红色车道 (1) | 行为类型: straight | 类别码: 2 | 帧范围: 925~548
+轨迹ID:   13 | 起点车道: 红色车道 (1) | 行为类型:     left | 类别码: 1 | 帧范围: 925~662
+轨迹ID:   15 | 起点车道: 红色车道 (1) | 行为类型:     stop | 类别码: 0 | 帧范围: 925~673
+
+-------------------- 分析结果预览 --------------------
+track_id  start_lane  behavior_code  start_frame  end_frame
+       1           1              2           24        135
+       6           1              2           62        210
+       9           1              2          404        548
+      13           1              1          571        662
+      15           1              0          608        673
+                                        question
+0  请问这辆车在绿灯状态下位于可直行可左转车道且正在直行中，有无交通违法行为？请简要说明理由。
+1  请问这辆车在绿灯状态下位于可直行可左转车道且正在直行中，有无交通违法行为？请简要说明理由。
+2  请问这辆车在绿灯状态下位于可直行可左转车道且正在直行中，有无交通违法行为？请简要说明理由。
+3  请问这辆车在绿灯状态下位于可直行可左转车道且正在左转中，有无交通违法行为？请简要说明理由。
+4  请问这辆车在绿灯状态下位于可直行可左转车道且正在静止中，有无交通违法行为？请简要说明理由。
+开始询问 ChatGLM: 请问这辆车在绿灯状态下位于可直行可左转车道且正在直行中，有无交通违法行为？请简要说明理由。
+ChatGLM 回复信息: 无交通违法行为。绿灯状态下，车辆沪AN9241在可直行可左转车道直行，符合交通信号指示，不违反交通规则。 
+
+开始询问 ChatGLM: 请问这辆车在绿灯状态下位于可直行可左转车道且正在直行中，有无交通违法行为？请简要说明理由。
+ChatGLM 回复信息: 无交通违法行为。绿灯状态下，车辆沪AN9241在可直行可左转车道直行符合交通规则。 
+
+开始询问 ChatGLM: 请问这辆车在绿灯状态下位于可直行可左转车道且正在直行中，有无交通违法行为？请简要说明理由。
+ChatGLM 回复信息: 无交通违法行为。根据交通规则，绿灯状态下，位于可直行可左转车道内，车辆沪AN9241在直行中符合规定。 
+
+开始询问 ChatGLM: 请问这辆车在绿灯状态下位于可直行可左转车道且正在左转中，有无交通违法行为？请简要说明理由。
+ChatGLM 回复信息: 有交通违法行为。绿灯状态下，车辆沪AN9241在左转，违反了优先直行的规定。 
+
+开始询问 ChatGLM: 请问这辆车在绿灯状态下位于可直行可左转车道且正在静止中，有无交通违法行为？请简要说明理由。
+ChatGLM 回复信息: 无交通违法行为。绿灯状态下，车辆沪AN9241在可直行可左转车道静止，未违反交通信号灯规定，也未占用不应占用的车 道。
 
 
-第一帧已保存为: E:\pandownload1\ML\Police\Project\.cache\lane.jpg
-
-# YOLOv7 输出信息
-YOLOR  acd1bf0 torch 2.5.1 CUDA:0 (NVIDIA GeForce RTX 3050 Laptop GPU, 4095.5MB)
-(---------------------------------超级繁琐我就省略了---------------------------------)
-
-图片大小为: 540 x 720
-
-            class                                        box      conf
-0        straight   [0.664815, 0.866667, 0.037037, 0.197222]  0.669922
-1      cross-line   [0.506481, 0.636111, 0.587037, 0.102778]  0.716309
-2      cross-line  [0.501852, 0.296528, 0.581481, 0.0986111]  0.753906
-3   left-straight  [0.325926, 0.865278, 0.0777778, 0.211111]  0.768066
-4  traffic-lights   [0.215741, 0.136806, 0.431481, 0.126389]  0.921875
-
-        num_ways
-YOLOv7         2
-OpenCV         3 
-
-预测车道线 HIT 区域 x = [34, 270, 507]
-  px_stop_line
-0    x = 34.00
-1   x = 270.50
-2   x = 507.00
-共归类出 3 条车道线
-
-  px_stop_line
-0   y = 495.00
-1   y = 178.00
-停止线预测位置在 y = 495.00
-
-车道线掩码已保存至 E:\pandownload1\ML\Police\Project\.cache\mask_lane.jpg 
-
-YOLOv7 + StrongSort 跟踪后共有 6 个轨迹
-
-    ID           lane  behavior   judge    plate
-0  1.0       straight  straight  Normal  津ABCDEF
-1  2.0       straight  straight  Normal  津ABCDEF
-2  3.0       straight  straight  Normal  津ABCDEF
-3  4.0  left-straight      left  Normal  津ABCDEF
-4  5.0       straight  straight  Normal  津ABCDEF
-5  6.0  left-straight      left  Normal  津ABCDEF 
-
-                                            question
-0  视频第12到119帧，绿灯，车牌津ABCDEF，位于直行车道，正在直行。\n请问视频中有没有...
-1  视频第146到253帧，红灯，车牌津ABCDEF，位于直行车道，正在直行。\n请问视频中有没...
-2  视频第295到372帧，红灯，车牌津ABCDEF，位于直行车道，正在直行。\n请问视频中有没...
-3  视频第411到467帧，红灯，车牌津ABCDEF，位于直行和左转车道，正在左转。\n请问视频...
-4  视频第520到597帧，绿灯，车牌津ABCDEF，位于直行车道，正在直行。\n请问视频中有没...
-5  视频第636到692帧，绿灯，车牌津ABCDEF，位于直行和左转车道，正在左转。\n请问视频...
-
-开始询问 DeepSeek: 视频第12到119帧，绿灯，车牌津ABCDEF，位于直行车道，正在直行。
-请问视频中有没有交通违法行为？请尽可能简短的回答问题。
-DeepSeek 回复信息: 没有交通违法行为*根据提供的信息，车辆津ABCDEF在直行车道内、绿灯下直行，没有交通违法行为。如果你有其他问题，欢迎随时提问。 
-
-开始询问 DeepSeek: 视频第146到253帧，红灯，车牌津ABCDEF，位于直行车道，正在直行。
-请问视频中有没有交通违法行为？请尽可能简短的回答问题。
-DeepSeek 回复信息: 有交通违法行为*根据提供的信息，车辆津ABCDEF在直行车道内、红灯下直行，属于闯红灯，有交通违法行为。如果你有其他问题，欢迎随时提问。 
-
-开始询问 DeepSeek: 视频第295到372帧，红灯，车牌津ABCDEF，位于直行车道，正在直行。
-请问视频中有没有交通违法行为？请尽可能简短的回答问题。
-DeepSeek 回复信息: 没有交通违法行为*根据提供的信息，车辆津ABCDEF在直行车道内、绿灯下直行，没有交通违法行为。如果你有其他问题，欢迎随时提问。 
-
-开始询问 DeepSeek: 视频第411到467帧，红灯，车牌津ABCDEF，位于直行和左转车道，正在左转。
-请问视频中有没有交通违法行为？请尽可能简短的回答问题。
-DeepSeek 回复信息: 有交通违法行为*根据提供的信息，车辆津ABCDEF在直行车道和左转车道内、红灯下左转，属于闯红灯，有交通违法行为。如果你有其他问题，欢迎随时提问。 
-
-开始询问 DeepSeek: 视频第520到597帧，绿灯，车牌津ABCDEF，位于直行车道，正在直行。
-请问视频中有没有交通违法行为？请尽可能简短的回答问题。
-DeepSeek 回复信息: 没有交通违法行为*根据提供的信息，车辆津ABCDEF在直行车道内、绿灯下直行，没有交通违法行为。如果你有其他问题，欢迎随时提问。 
-
-开始询问 DeepSeek: 视频第636到692帧，绿灯，车牌津ABCDEF，位于直行和左转车道，正在左转。
-请问视频中有没有交通违法行为？请尽可能简短的回答问题。
-DeepSeek 回复信息: 没有交通违法行为*根据提供的信息，车辆津ABCDEF在直行车道和左转车道内、绿灯下左转，没有交通违法行为。如果你有其他问题，欢迎随时提问。 
-
+(Zhipuai) 询问结果:
                                                reply
-0  没有交通违法行为*根据提供的信息，车辆津ABCDEF在直行车道内、绿灯下直行，没有交通违法行...
-1  有交通违法行为*根据提供的信息，车辆津ABCDEF在直行车道内、红灯下直行，属于闯红灯，有交...
-2  没有交通违法行为*根据提供的信息，车辆津ABCDEF在直行车道内、绿灯下直行，没有交通违法行...
-3  有交通违法行为*根据提供的信息，车辆津ABCDEF在直行车道和左转车道内、红灯下左转，属于闯...
-4  没有交通违法行为*根据提供的信息，车辆津ABCDEF在直行车道内、绿灯下直行，没有交通违法行...
-5  没有交通违法行为*根据提供的信息，车辆津ABCDEF在直行车道和左转车道内、绿灯下左转，没有...
+0  无交通违法行为。绿灯状态下，车辆沪AN9241在可直行可左转车道直行，符合交通信号指示，不违...
+1          无交通违法行为。绿灯状态下，车辆沪AN9241在可直行可左转车道直行符合交通规则。
+2  无交通违法行为。根据交通规则，绿灯状态下，位于可直行可左转车道内，车辆沪AN9241在直行中...
+3             有交通违法行为。绿灯状态下，车辆沪AN9241在左转，违反了优先直行的规定。
+4  无交通违法行为。绿灯状态下，车辆沪AN9241在可直行可左转车道静止，未违反交通信号灯规定，...
 
-                                         report_name
-0  report-2025-04-02 11-06-33.263063-d1c471dd-7ef...
-1  report-2025-04-02 11-06-33.263063-ce7b2eb7-782...
+违规视频导出成功：runs\live\ext\violation_227208112977783231_13_left.mp4
 
-PDF 文件已保存: E:\pandownload1\ML\Police\Project\pdfs\report-2025-04-02 11-06-33.263063-d1c471dd-7ef6-4a13-99da-432bc9febd98.pdf
+PDF 文件已保存: runs\reports\沪AN9241-13-违规报告-2026-03-25-19-47-51.pdf
 
-PDF 文件已保存: E:\pandownload1\ML\Police\Project\pdfs\report-2025-04-02 11-06-33.263063-ce7b2eb7-7821-4c37-902a-00c22346c32c.pdf
 
+-------------------- 违规视频列表 --------------------
+车牌: 沪AN9241 | 轨迹ID: 13 | 行为: left | 视频: runs\live\ext\violation_227208112977783231_13_left.mp4
 ```
 
 
 ### 特别鸣谢
-#### 1.  YOLOv7 + StrongSort + OSNet
 
-```
-# 项目采用 GPL-3.0 协议
-https://github.com/mikel-brostrom/Yolov7_StrongSORT_OSNet
-```
-
-#### 2.  车牌识别
-
-```
-# 项目采用 GPL-3.0 协议
-https://github.com/we0091234/Chinese_license_plate_detection_recognition
-```
-
-#### 3.  YOLOv12
-
-```
-# 项目采用 APGL-3.0 协议
-https://github.com/sunsmarterjie/yolov12
-```
+|名称|开源协议|链接|
+|----|----|----|
+|目标跟踪|GPL-3.0|https://github.com/mikel-brostrom/Yolov7_StrongSORT_OSNet|
+|车牌识别|GPL-3.0|https://github.com/we0091234/Chinese_license_plate_detection_recognition|
+|目标检测|APGL-3.0|https://github.com/sunsmarterjie/yolov12|
+|车道线拟合|MIT|https://github.com/lucastabelini/PolyLaneNet|

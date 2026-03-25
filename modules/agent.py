@@ -7,6 +7,7 @@ import re
 import yaml
 from copy import copy
 from llama_cpp import Llama
+import asyncio
 
 '''
 统一接口管理大语言模型的交互
@@ -148,6 +149,9 @@ class LargeLanguageModelManager():
         使用 concurrent.futures 进行并行生成, 提高效率
         '''
         reply = []
+        if (len(lnpf) != len(qtpf)):
+            raise RuntimeError('len(lnpf) != len(qtpf)')
+        
         for plate, question in zip(lnpf['plate'].values, qtpf["question"].values):
             print("开始询问 ChatGLM:", question)
             

@@ -26,6 +26,22 @@ from torchvision import models, transforms
 from torchvision.models.inception import Inception_V3_Weights
 import argparse
 
+'''
+全局宏定义结构体, 存储所有的全局宏定义
+不然 OutLine 太难看, 也不方便管理
+'''
+STOP = 0
+LEFT = 1
+STRAIGHT = 2
+RIGHT = 3
+U_TURN = 4
+
+ERROR = -2
+NODET = -1
+COLOR_RED = 0
+COLOR_YELLOW = 1
+COLOR_GREEN = 2
+
 class EarlyStop():
     '''
     提前退出控制类, 用于描述是否有下降
@@ -101,22 +117,6 @@ class LastClassifier(nn.Module):
         out = self.fn2(out)
         return out
 
-class MacroDefinination():
-    '''
-    全局宏定义结构体, 存储所有的全局宏定义
-    不然 OutLine 太难看, 也不方便管理
-    '''
-    STOP = 0
-    LEFT = 1
-    STRAIGHT = 2
-    RIGHT = 3
-    U_TURN = 4
-
-    ERROR = -2
-    NODET = -1
-    COLOR_RED = 0
-    COLOR_YELLOW = 1
-    COLOR_GREEN = 2
 
 class DataTransformer():
     '''
@@ -396,26 +396,56 @@ class SignalAnalyzer():
         红绿灯状态机在这里进行轮转, 使用 update 进行轮转
         '''
         self.dfa_rule = {
-            MacroDefinination.COLOR_RED: MacroDefinination.COLOR_GREEN,
-            MacroDefinination.COLOR_YELLOW: MacroDefinination.COLOR_RED,
-            MacroDefinination.COLOR_GREEN: MacroDefinination.COLOR_YELLOW
+            COLOR_RED: COLOR_GREEN,
+            COLOR_YELLOW: COLOR_RED,
+            COLOR_GREEN: COLOR_YELLOW
         }
         self.current_state = None # None 值表示可以赋值任意状态
+
+        self.xyxy = None
+
+    def check_mask(self):
+        '''
+        检查我们是否已经有掩膜了
+        '''
+        return self.xyxy is not None
+    
+    def reset(self):
+        '''
+        清除掩膜信息
+        '''
+        self.xyxy = None
+
+    def apply_mask(self, xyxy):
+        '''
+        更新掩膜, 并持续使用该掩膜
+        '''
+        self.xyxy = xyxy
 
     def update(self, img, mode:Literal['bgr', 'rgb', 'hsv', 'path']='bgr'):
         '''
         更新红绿灯状态, 输入图片和模式
         '''
-        color = self.classify(img, mode=mode)
+        if self.xyxy is None:
+            return -2
+        
+        x1, y1, x2, y2 = self.xyxy
+        masked_img =  img[y1:y2, x1:x2, :]
+
+        color = self.classify(masked_img, mode=mode)
         if color < 0:
             return color
         
         if self.current_state is None:
             self.current_state = color
+            return color
         else:
             # 符合转换规则, 进行状态转移
             target_state = self.dfa_rule[self.current_state]
             if color != target_state:
+                self.current_state = color
+                return color
+            else:
                 self.current_state = color
                 return color
 
@@ -424,31 +454,32 @@ class SignalAnalyzer():
         '''
         将颜色代码转换为字符串
         '''
-        if color_code == MacroDefinination.COLOR_RED:
+        if color_code == COLOR_RED:
             return "Red"
-        elif color_code == MacroDefinination.COLOR_YELLOW:
+        elif color_code == COLOR_YELLOW:
             return "Yellow"
-        elif color_code == MacroDefinination.COLOR_GREEN:
+        elif color_code == COLOR_GREEN:
             return "Green"
-        elif color_code == MacroDefinination.ERROR:
+        elif color_code == ERROR:
             return "Error"
-        elif color_code == MacroDefinination.NODET:
+        elif color_code == NODET:
             return "No Traffic Light Detected"
         else:
             return "Unknown"
 
-    def classify(img, mode:Literal['bgr', 'rgb', 'hsv', 'path']='bgr'):
+    def classify(self, img, mode:Literal['bgr', 'rgb', 'hsv', 'path']='bgr') -> int:
         '''
         对 HSV 图片进行色相检测对红绿灯进行识别, 要求输入 BGR 图片
         '''
         if img is None:
-            return MacroDefinination.ERROR
+            print("没有裁剪到有效的图片")
+            return ERROR
         
         hsv = None
         if mode == 'path':
             img = cv2.imread(img)
             if img is None:
-                return MacroDefinination.ERROR
+                return ERROR
             hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
         if mode == 'bgr':
@@ -458,14 +489,14 @@ class SignalAnalyzer():
         elif mode == 'hsv':
             hsv = img
         else:
-            return MacroDefinination.ERROR
+            return ERROR
         
         # 色相阈值
         lower_red1 = np.array([0, 120, 120])
         upper_red1 = np.array([10, 255, 255])
         lower_red2 = np.array([160, 120, 120])
         upper_red2 = np.array([180, 255, 255])
-        lower_yellow = np.array([20, 120, 120])
+        lower_yellow = np.array([15, 100, 100])
         upper_yellow = np.array([35, 255, 255])
         lower_green = np.array([36, 120, 120])
         upper_green = np.array([85, 255, 255])
@@ -484,14 +515,14 @@ class SignalAnalyzer():
         max_pixels = max(red_pixels, yellow_pixels, green_pixels)
         
         if max_pixels < mthreshold:
-            return MacroDefinination.NODET
+            return NODET
         
         if max_pixels == red_pixels:
-            return MacroDefinination.COLOR_RED
+            return COLOR_RED
         elif max_pixels == yellow_pixels:
-            return MacroDefinination.COLOR_YELLOW
+            return COLOR_YELLOW
         else:
-            return MacroDefinination.COLOR_GREEN
+            return COLOR_GREEN
         
 class AttackAnalyzer():
     '''
@@ -660,11 +691,11 @@ class BehaviorAnalyzer():
 
         # 确定分类码
         self.dict_action = {
-            "stop": MacroDefinination.STOP,
-            "left": MacroDefinination.LEFT,
-            "straight": MacroDefinination.STRAIGHT,
-            "right": MacroDefinination.RIGHT,
-            "uturn": MacroDefinination.U_TURN
+            "stop": STOP,
+            "left": LEFT,
+            "straight": STRAIGHT,
+            "right": RIGHT,
+            "uturn": U_TURN
         }
         self.r_dict_action = {v: k for k, v in self.dict_action.items()}
 
@@ -899,7 +930,7 @@ class BertClassifier():
         self.bert_model = BertForSequenceClassification.from_pretrained(pretraind_path, config=self.bert_config).to(self.device)
         self.bert_model.classifier = LastClassifier(hidden_dim=768, output_dim=2).to(self.device)
 
-        self.bert_model.classifier.load_state_dict(torch.load(classifier_path, map_location=self.device))
+        self.bert_model.load_state_dict(torch.load(classifier_path, map_location=self.device))
         self.bert_model.eval()
 
     @torch.no_grad()
@@ -912,9 +943,9 @@ class BertClassifier():
             text = text[:max_len]
         inputs = DataTransformer.bert_transform(text, tokenizer=self.bert_tokenizer)
 
-        input_ids = torch.tensor(inputs['input_ids']).unsqueeze(0).to(self.device)
-        attention_mask = torch.tensor(inputs['attention_mask']).unsqueeze(0).to(self.device)
-        token_type_ids = torch.tensor(inputs['token_type_ids']).unsqueeze(0).to(self.device)
+        input_ids = inputs['input_ids'].unsqueeze(0).to(self.device)
+        attention_mask = inputs['attention_mask'].unsqueeze(0).to(self.device)
+        token_type_ids = inputs['token_type_ids'].unsqueeze(0).to(self.device)
 
         out = self.bert_model(input_ids, attention_mask, token_type_ids)
         predicted = torch.argmax(out.logits, 1).cpu().numpy()[0]
@@ -2014,7 +2045,7 @@ if __name__ == '__main__':
 
             np.save(opt.save_path, mask)
             print(f"Numpy 文件已保存至 {opt.save_path}")
-            
+
         except KeyboardInterrupt:
             print("\n程序已正常退出（用户中断）")
         except Exception as e:

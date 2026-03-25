@@ -509,7 +509,7 @@ class ReportExporter():
         # 替换策略 (使用占位符进行替换)
         replacements = {
             "ph_plate": status_dict['plate'],
-            "{{ph_rport}}": status_dict['report'],
+            "ph_report": status_dict['report'],
             "ph_name": status_dict["administrator"],
             "ph_rp_time": status_dict["datetime_report"]
         }

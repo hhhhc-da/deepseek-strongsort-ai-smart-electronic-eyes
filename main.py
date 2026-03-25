@@ -3,14 +3,31 @@ import numpy as np
 import torch
 import traceback
 import argparse
+import redis
 
 from modules.strongsort import StrongSortTracker
 from modules.processor import StreamProcessor
-from modules.analyzer import BehaviorAnalyzer
-from modules.agent import LargeLanguageModelManager
-from modules.serve import MQTTServer, SMTPClient, ReportExporter, on_connect, on_message
+from modules.analyzer import SignalAnalyzer
+from modules.predict import main_data_analysis
 
-def main_loop():
+def clean_redis_backup():
+    '''
+    用于处理调试过程中遇到的 Redis 备份键
+    '''
+    r = redis.Redis(
+        host='localhost',
+        port=6379,
+        db=1,
+        decode_responses=True
+    )
+
+    r.delete("backup")
+    r.delete("traffic_light_info")
+
+    del r
+
+
+def main_video_process():
     '''
     处理主函数, 用于处理 StrongSort 跟踪事件全流程
     '''
@@ -47,7 +64,8 @@ def main_loop():
         },
         redis_key='backup',
         enable_push=False,
-        enable_save=True
+        enable_save=True,
+        signal_analyzer=SignalAnalyzer()
     )
     
     try:
@@ -63,4 +81,11 @@ def main_loop():
         loader.stop_all_processes()
 
 if __name__ == '__main__':
-    main_loop()
+    print("删除 Redis 存储的旧数据")
+    clean_redis_backup()
+
+    print("开始处理 Video 并制作基础切片")
+    main_video_process()
+
+    print("开始执行分析与预测")
+    main_data_analysis()
