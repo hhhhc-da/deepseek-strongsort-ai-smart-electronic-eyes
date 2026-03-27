@@ -49,7 +49,7 @@ python main.py        # 用于分析视频和输出（运行完自动退出）
 
 # 想测试有没有问题？试试 test.py 吧
 python test.py --env        # 仅测试 EnvAnalyzer 是否正常
-python text.py --report     # 仅测试 PDF 接口是否正常
+python test.py --report     # 仅测试 PDF 接口是否正常
 ```
 
 ### 详细内容
