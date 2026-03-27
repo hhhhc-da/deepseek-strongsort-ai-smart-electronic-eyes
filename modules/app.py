@@ -381,44 +381,6 @@ def serve_login():
         traceback.print_exc()
         return jsonify({'Code': -DB_NONE_ERROR, 'Error': 'DB_NONE_ERROR_1'}), 500
     
-@app.route('/api/fetch_video', methods=['GET'])
-def serve_fetch_video():
-    '''
-    用于获取视频相关信息
-    '''
-    global db, cursor
-
-    try:
-        credit = request.headers.get('Authorization')[7:]
-        if credit is None:
-            return jsonify({'Code': -INVALID_TOKEN, 'Error': 'INVALID_TOKEN_5'}), 401
-        
-        msg, code = _check_token(credit=credit)
-        if code < 0:
-            return jsonify(msg), 401
-
-        sql = "SELECT id, plate, text, time FROM behavior WHERE review = -1;"
-        cursor.execute(sql)
-        result = cursor.fetchall()
-
-        datapack = {
-            'title': ['id', 'plate', 'text', 'time'],
-            'data': []
-        }
-        if len(result) == 0:
-            return jsonify({'Code': SERVE_SUCCESS, 'Message': 'All behavior done', 'Data': datapack}), 200
-        
-        # 使用 id 进行视频检索，样例 http://localhost:81/runs/live/ext/0.mp4, 直接就是能用的 url
-        datapack['data'] = result
-        
-        return jsonify({'Code': SERVE_SUCCESS, 'Message': 'SERVE_SUCCESS', 'Data': datapack}), 200
-    
-    except Exception as e:
-        app.logger.error(f"Error in fetching data: {e}")
-        db.rollback()
-
-        traceback.print_exc()
-        return jsonify({'Code': -DB_NONE_ERROR, 'Error': 'DB_NONE_ERROR_3'}), 500
 
 @app.route('/api/fetch_profile', methods=['GET'])
 def serve_fetch_profile():
