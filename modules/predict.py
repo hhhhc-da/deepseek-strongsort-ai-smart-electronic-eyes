@@ -14,6 +14,7 @@ from collections import defaultdict
 import pandas as pd
 import traceback
 from datetime import datetime
+import pymysql
 
 # 设置KMP重复库允许（解决OpenMP冲突）
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
@@ -22,6 +23,18 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 from modules.analyzer import DataTransformer, BehaviorAnalyzer, PlateAnalyzer, SignalAnalyzer, BertClassifier
 from modules.serve import SMTPClient, MQTTServer, ReportExporter
 from modules.agent import LargeLanguageModelManager
+
+arg_kwargs = {
+    'host': "localhost",
+    'port': 3306,
+    'user': 'nanoka',
+    'password': "12345678n",
+    'database': "manage",
+    'charset': 'utf8mb4'
+}
+
+db = pymysql.connections.Connection(**arg_kwargs)
+cursor = db.cursor()
 
 
 class RedisBehaviorAnalyzer:
@@ -431,6 +444,8 @@ class RedisBehaviorAnalyzer:
 
 # -------------------------- 主函数 --------------------------
 def main_data_analysis():
+    global db, cursor
+
     # 初始化分析器（包含视频导出配置）
     analyzer = RedisBehaviorAnalyzer(
         redis_conf={'host': 'localhost', 'port': 6379, 'db': 1},
@@ -460,11 +475,6 @@ def main_data_analysis():
     bert_classifier = BertClassifier(
         pretraind_path='bert-base-chinese',
         classifier_path=os.path.join('models', 'bert_classifier.pth')
-    )
-
-    reporter = ReportExporter(
-        output_dir=os.path.join('runs', 'reports'),
-        verbose=True
     )
 
     # 处理Redis数据并分析
@@ -512,29 +522,18 @@ def main_data_analysis():
             # 导出违规视频
             video_path = analyzer.export_violation_video(track_id, behavior_name)
             if video_path:
-                violation_video_paths.append({
-                    'plate': plate,
-                    'track_id': track_id,
-                    'behavior': behavior_name,
-                    'video_path': video_path,
-                    'llm_reply': pf['reply'].iloc[i]
-                })
-                
-                # 导出违规报告
-                reporter.export_report(
-                    report_name=f"{plate}-{track_id}-违规报告",
-                    format='pdf',
-                    status_dict={
-                        "datetime_report": str(datetime.now()).split()[0],
-                        "plate": plate,
-                        "track_id": track_id,
-                        "behavior": behavior_name,
-                        "report": pf['reply'].iloc[i],
-                        "video_path": video_path,
-                        "administrator": "审核员 A-103",
-                        "template_path": r'E:\pandownload1\ML\Police\Project\source\report.docx'
-                    }
-                )
+                # 将违规信息上传 MySQL
+                try:
+                    sql = "INSERT INTO behavior(plate, text, video_path, review, time) VALUES (%s, %s, %s, -1, NOW());"
+                    cursor.execute(sql, (plate, pf['reply'].iloc[i], video_path.replace("\\", "/")))
+                    db.commit()
+                        
+                except Exception as e:
+                    print(f"上传 MySQL 出现错误: {e}")
+                    db.rollback()
+
+                    traceback.print_exc()
+
 
     # 打印违规视频列表
     print("\n-------------------- 违规视频列表 --------------------")

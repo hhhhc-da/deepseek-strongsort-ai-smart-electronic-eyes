@@ -43,7 +43,8 @@ class DDOSClient():
                  target_url="http://127.0.0.1:81/api", 
                  max_threads=50, 
                  request_count=10000,
-                 verbose=True):
+                 verbose=True
+    ):
         self.target_url = target_url
         self.max_threads = max_threads 
         self.request_count = request_count
@@ -160,7 +161,8 @@ class MQTTServer():
     def __init__(self, 
                  base_dir=os.path.join('submodules', 'mosquitto'),
                  yaml_path=os.path.join('cfg', 'config.yaml'),
-                 verbose=True):
+                 verbose=True
+    ):
         '''
         配置启动目录, 以及一些基本的 MQTT 配置
         '''
@@ -351,7 +353,8 @@ class SMTPClient():
     def __init__(self, 
                  yaml_path=os.path.join('cfg', 'config.yaml'), 
                  subject="安全事件通知",
-                 verbose=True):
+                 verbose=True
+    ):
         '''
         分开初始化为多个部分, 减少耦合, 以便于后续的动态配置修改
         '''
@@ -451,7 +454,8 @@ class ReportExporter():
     '''
     def __init__(self, 
                  output_dir=os.path.join('runs', 'reports'),
-                 verbose=True):
+                 verbose=True
+    ):
         self.output_dir = output_dir
 
         # 专门用于管理这个随机数生成器, 以便于在生成报告时使用

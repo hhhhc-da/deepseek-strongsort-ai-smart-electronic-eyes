@@ -15,6 +15,8 @@ from waitress import serve
 import logging
 import traceback
 
+from serve import ReportExporter
+
 # 传奇 WSGI 纯净服务器不需要回显！！！
 logging.getLogger('waitress').setLevel(logging.ERROR)
 
@@ -84,7 +86,7 @@ def _update_token_by_username(username) -> str:
     '''
     使用 username 对 token 进行更新并返回 token, 此处不做校验因为是内部函数
     '''
-    global cursor
+    global db, cursor
 
     sql = "SELECT token FROM cookie WHERE account = %s;"
     cursor.execute(sql, (username))
@@ -106,38 +108,38 @@ def _check_token(credit):
     '''
     校验 token 的有效性，简化代码
     '''
-    global cursor
+    global db, cursor
 
-    sql = "SELECT time FROM cookie WHERE token = %s;"
-    cursor.execute(sql, (credit))
-    result = cursor.fetchall()
+    # sql = "SELECT time FROM cookie WHERE token = %s;"
+    # cursor.execute(sql, (credit))
+    # result = cursor.fetchall()
     
-    try:
-        if len(result) == 0:
-            return {'Code': -INVALID_TOKEN, 'Error': 'INVALID_TOKEN_1'}, -1
+    # try:
+    #     if len(result) == 0:
+    #         return {'Code': -INVALID_TOKEN, 'Error': 'INVALID_TOKEN_1'}, -1
         
-        time = result[0][0] if result else None
-        if time is None:
-            return {'Code': -INVALID_TOKEN, 'Error': 'INVALID_TOKEN_2'}, -2
-        elif time < datetime.now() - timedelta(days=30):
-            try:
-                sql = "DELETE FROM cookie WHERE token = %s;"
-                cursor.execute(sql, (credit))
-                db.commit()
-            except Exception as e:
-                app.logger.error(f"Error fetching token: {e}")
-                traceback.print_exc()
+    #     time = result[0][0] if result else None
+    #     if time is None:
+    #         return {'Code': -INVALID_TOKEN, 'Error': 'INVALID_TOKEN_2'}, -2
+    #     elif time < datetime.now() - timedelta(days=30):
+    #         try:
+    #             sql = "DELETE FROM cookie WHERE token = %s;"
+    #             cursor.execute(sql, (credit))
+    #             db.commit()
+    #         except Exception as e:
+    #             app.logger.error(f"Error fetching token: {e}")
+    #             traceback.print_exc()
 
-            # Token 过期了但是不生成新的，因为这里全靠 token 运行，直接跳转并限制登陆
-            return {'Code': -TOKEN_EXPIRED, 'Error': 'TOKEN_EXPIRED_1'}, -3
+    #         # Token 过期了但是不生成新的，因为这里全靠 token 运行，直接跳转并限制登陆
+    #         return {'Code': -TOKEN_EXPIRED, 'Error': 'TOKEN_EXPIRED_1'}, -3
         
-    except IndexError:
-        traceback.print_exc()
-        return {'Code': -INVALID_TOKEN, 'Error': 'INVALID_TOKEN_3'}, -4
-    except Exception as e:
-        app.logger.error(f"Error fetching token: {e}")
-        traceback.print_exc()
-        return {'Code': -INVALID_TOKEN, 'Error': 'INVALID_TOKEN_4'}, -5
+    # except IndexError:
+    #     traceback.print_exc()
+    #     return {'Code': -INVALID_TOKEN, 'Error': 'INVALID_TOKEN_3'}, -4
+    # except Exception as e:
+    #     app.logger.error(f"Error fetching token: {e}")
+    #     traceback.print_exc()
+    #     return {'Code': -INVALID_TOKEN, 'Error': 'INVALID_TOKEN_4'}, -5
     
     return {'Code': SERVE_SUCCESS, 'Message': 'SERVE_SUCCESS'}, 0
 
@@ -145,7 +147,7 @@ def _convert_cookie_to_username(credit):
     '''
     将 token 转换为用户账号，必须先经过检验才可以
     '''
-    global cursor
+    global db, cursor
 
     sql = "SELECT time FROM cookie WHERE token = %s;"
     cursor.execute(sql, (credit))
@@ -202,7 +204,7 @@ def _check_security(credit, service='upload'):
     '''
     校验是否来自可信任的服务
     '''
-    global cursor
+    global db, cursor
 
     sql = "SELECT hash FROM security WHERE name = %s;"
     cursor.execute(sql, (service))
@@ -337,7 +339,7 @@ def serve_login():
     '''
     登录函数, 用于记录所有登录行为
     '''
-    global cursor
+    global db, cursor
 
     data = request.get_json()
     if not data:
@@ -384,7 +386,7 @@ def serve_fetch_video():
     '''
     用于获取视频相关信息
     '''
-    global cursor
+    global db, cursor
 
     try:
         credit = request.headers.get('Authorization')[7:]
@@ -423,7 +425,7 @@ def serve_fetch_profile():
     '''
     用于获取用户个人信息
     '''
-    global cursor
+    global db, cursor
 
     try:
         credit = request.headers.get('Authorization')[7:]
@@ -474,7 +476,7 @@ def serve_fetch_account():
     '''
     用于获取用户账户信息，专门为前端页适配版本
     '''
-    global cursor
+    global db, cursor
     
     try:
         credit = request.headers.get('Authorization')[7:]
@@ -517,6 +519,8 @@ def serve_fetch_data():
     '''
     获取数据 API, 可以获取一些基本信息
     '''
+    global db, cursor
+
     try:
         credit = request.headers.get('Authorization')[7:]
 
@@ -562,6 +566,8 @@ def serve_fetch_count():
     '''
     获取前端 web 的一些基本参数
     '''
+    global db, cursor
+
     try:
         sql = "SELECT COUNT(*) FROM `behavior` WHERE review = -1;"
         cursor.execute(sql)
@@ -583,6 +589,8 @@ def serve_publish():
     '''
     接收来自程序的数据, 用于保存每一个 DeepSeek 输出的结果
     '''
+    global db, cursor
+
     data = request.get_json()
     if not data:
         return jsonify({'Code': -INVALID_INPUT, 'Error': 'INVALID_INPUT_1'}), 401
@@ -616,6 +624,8 @@ def serve_deepseek_upload_data():
     '''
     接收来自程序的数据, 用于保存每一个 DeepSeek 输出的结果
     '''
+    global db, cursor
+
     data = request.get_json()
     if not data:
         return jsonify({'Code': -INVALID_INPUT, 'Error': 'INVALID_INPUT_1'}), 401
@@ -650,6 +660,8 @@ def serve_security_main():
     '''
     接收来自程序的数据, 用于记录有没有被攻击
     '''
+    global db, cursor
+
     data = request.get_json()
     if not data:
         return jsonify({'Code': -INVALID_INPUT, 'Error': 'INVALID_INPUT_1'}), 400
@@ -689,6 +701,33 @@ def serve_security_main():
 
         traceback.print_exc()
         return jsonify({'Code': -DB_NONE_ERROR, 'Error': 'SERVE_SUCCESS_2'}), 500
+    
+@app.route('/api/receive_review', methods=['GET'])
+def serve_receive_review():
+    '''
+    获取所有当前 ID 的基本信息，用于给 review 部分提供接口
+    '''
+    global db, cursor
+
+    credit = request.headers.get('Authorization')[7:]
+
+    msg, code = _check_token(credit=credit)
+    if code < 0:
+        return jsonify(msg), 401
+    
+    try:
+        sql = "SELECT id, plate, text, video_path, time FROM behavior WHERE review = -1;"
+        cursor.execute(sql)
+        result = cursor.fetchall()
+            
+        return jsonify({'Code': SERVE_SUCCESS, 'Message': 'SERVE_SUCCESS', 'Data': result}), 200
+    
+    except Exception as e:
+        app.logger.error(f"Error in uploading data: {e}")
+        db.rollback()
+
+        traceback.print_exc()
+        return jsonify({'Code': -DB_NONE_ERROR, 'Error': 'SERVE_SUCCESS_2'}), 500
 
 
 @app.route('/api/upload_review', methods=['POST'])
@@ -696,7 +735,10 @@ def serve_update_review():
     '''
     用于更新违规行为的内容, 如果输出 accept 就直接输出, 如果使用的是 reject 那我们根据 text 内容进行判断
     状态 -1 表示没有进行审核，状态 0 表示车辆行为没有问题，状态 1 表示车辆行为存在问题，所以我们要重新规划 text 的表达
+    之后我们直接导出成 PDF 即可, 之后就可以发送到对应位置了
     '''
+    global db, cursor
+
     data = request.get_json()
     if not data:
         return jsonify({'Code': -INVALID_INPUT, 'Error': 'INVALID_INPUT_1'}), 400
@@ -707,14 +749,15 @@ def serve_update_review():
     if code < 0:
         return jsonify(msg), 401
 
-    _id = data.get('id')
+    _id = int(data.get('id'))
+    plate = data.get('plate')
     text = data.get('text')
     h_sts = int(data.get('status')[0])
     status = data.get('status')[1:]
     
     try:
-        sql = "SELECT COUNT(*) FROM behavior WHERE id = %d;"
-        cursor.execute(sql)
+        sql = "SELECT COUNT(*) FROM behavior WHERE id = %s;"
+        cursor.execute(sql, (_id,))
         result = cursor.fetchall()
         
         re_count = result[0][0] if result else None
@@ -722,19 +765,25 @@ def serve_update_review():
             return jsonify({'Code': -DB_NONE_ERROR, 'Error': 'DB_NONE_ERROR_1'}), 401
         
         if status == 'accept':
-            sql = "UPDATE behavior SET review = %d, time = NOW() WHERE id = %d;"
+            sql = "UPDATE behavior SET review = %s WHERE id = %s;"
             cursor.execute(sql, (1, _id))
             db.commit()
         else:
             if h_sts == 0:
-                sql = "UPDATE behavior SET text = %s, review = %d, time = NOW() WHERE id = %d;"
+                sql = "UPDATE behavior SET text = %s, review = %s WHERE id = %s;"
                 cursor.execute(sql, (text, 0, _id))
                 db.commit()
             else:
-                sql = "UPDATE behavior SET text = %s, review = %d, time = NOW() WHERE id = %d;"
+                sql = "UPDATE behavior SET text = %s, review = %s WHERE id = %s;"
                 cursor.execute(sql, (text, 1, _id))
                 db.commit()
-            
+
+        
+        script_dir = r"E:\pandownload1\ML\Police\Project"
+        command = f'''cd /d "{script_dir}" && conda activate proj && python modules\export.py --plate "{plate}" --report "{text}"'''
+        os.system(command)
+
+        app.logger.debug("已输出 export_report")
         return jsonify({'Code': SERVE_SUCCESS, 'Message': 'SERVE_SUCCESS'}), 200
     
     except Exception as e:
@@ -742,7 +791,8 @@ def serve_update_review():
         db.rollback()
 
         traceback.print_exc()
-        return jsonify({'Code': -DB_NONE_ERROR, 'Error': 'SERVE_SUCCESS_2'}), 500
+        return jsonify({'Code': -DB_NONE_ERROR, 'Error': 'DB_NONE_ERROR_2'}), 500
+    
 
 @app.before_request
 def serve_before_request():
@@ -792,6 +842,7 @@ def serve_after_request(response):
     
     data_lock.release()
     return response
+
         
 if __name__ == '__main__':
     opt = parse_opt()
