@@ -110,36 +110,36 @@ def _check_token(credit):
     '''
     global db, cursor
 
-    # sql = "SELECT time FROM cookie WHERE token = %s;"
-    # cursor.execute(sql, (credit))
-    # result = cursor.fetchall()
+    sql = "SELECT time FROM cookie WHERE token = %s;"
+    cursor.execute(sql, (credit))
+    result = cursor.fetchall()
     
-    # try:
-    #     if len(result) == 0:
-    #         return {'Code': -INVALID_TOKEN, 'Error': 'INVALID_TOKEN_1'}, -1
+    try:
+        if len(result) == 0:
+            return {'Code': -INVALID_TOKEN, 'Error': 'INVALID_TOKEN_1'}, -1
         
-    #     time = result[0][0] if result else None
-    #     if time is None:
-    #         return {'Code': -INVALID_TOKEN, 'Error': 'INVALID_TOKEN_2'}, -2
-    #     elif time < datetime.now() - timedelta(days=30):
-    #         try:
-    #             sql = "DELETE FROM cookie WHERE token = %s;"
-    #             cursor.execute(sql, (credit))
-    #             db.commit()
-    #         except Exception as e:
-    #             app.logger.error(f"Error fetching token: {e}")
-    #             traceback.print_exc()
+        time = result[0][0] if result else None
+        if time is None:
+            return {'Code': -INVALID_TOKEN, 'Error': 'INVALID_TOKEN_2'}, -2
+        elif time < datetime.now() - timedelta(days=30):
+            try:
+                sql = "DELETE FROM cookie WHERE token = %s;"
+                cursor.execute(sql, (credit))
+                db.commit()
+            except Exception as e:
+                app.logger.error(f"Error fetching token: {e}")
+                traceback.print_exc()
 
-    #         # Token 过期了但是不生成新的，因为这里全靠 token 运行，直接跳转并限制登陆
-    #         return {'Code': -TOKEN_EXPIRED, 'Error': 'TOKEN_EXPIRED_1'}, -3
+            # Token 过期了但是不生成新的，因为这里全靠 token 运行，直接跳转并限制登陆
+            return {'Code': -TOKEN_EXPIRED, 'Error': 'TOKEN_EXPIRED_1'}, -3
         
-    # except IndexError:
-    #     traceback.print_exc()
-    #     return {'Code': -INVALID_TOKEN, 'Error': 'INVALID_TOKEN_3'}, -4
-    # except Exception as e:
-    #     app.logger.error(f"Error fetching token: {e}")
-    #     traceback.print_exc()
-    #     return {'Code': -INVALID_TOKEN, 'Error': 'INVALID_TOKEN_4'}, -5
+    except IndexError:
+        traceback.print_exc()
+        return {'Code': -INVALID_TOKEN, 'Error': 'INVALID_TOKEN_3'}, -4
+    except Exception as e:
+        app.logger.error(f"Error fetching token: {e}")
+        traceback.print_exc()
+        return {'Code': -INVALID_TOKEN, 'Error': 'INVALID_TOKEN_4'}, -5
     
     return {'Code': SERVE_SUCCESS, 'Message': 'SERVE_SUCCESS'}, 0
 
@@ -398,7 +398,7 @@ def serve_fetch_profile():
         if code < 0:
             return jsonify(msg), 401
         
-        msg, code = _convert_cookie_to_username() # 校验 account 之后联合查询即可
+        msg, code = _convert_cookie_to_username(credit=credit) # 校验 account 之后联合查询即可
         if code < 0:
             return jsonify(msg), 401
         account = msg['Account']
@@ -449,7 +449,7 @@ def serve_fetch_account():
         if code < 0:
             return jsonify(msg), 401
         
-        msg, code = _convert_cookie_to_username()
+        msg, code = _convert_cookie_to_username(credit=credit)
         if code < 0:
             return jsonify(msg), 401
         account = msg['Account']
