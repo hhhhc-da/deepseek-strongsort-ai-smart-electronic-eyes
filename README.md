@@ -395,3 +395,4 @@ PDF 文件已保存: runs\reports\沪AN9241-13-违规报告-2026-03-25-19-47-51.
 |车牌识别|GPL-3.0|https://github.com/we0091234/Chinese_license_plate_detection_recognition|
 |目标检测|APGL-3.0|https://github.com/sunsmarterjie/yolov12|
 |车道线拟合|MIT|https://github.com/lucastabelini/PolyLaneNet|
+|前端页面|MIT|https://github.com/satnaing/shadcn-admin|
