@@ -384,15 +384,11 @@ onBeforeUnmount(() => {
       <div class="contact-info reveal">
         <div class="contact-item">
           <label>项目负责人</label>
-          <a href="https://github.com/hhhhc-da">郑斌</a>
+          <a href="https://github.com/hhhhc-da">Nanoka</a>
         </div>
         <div class="contact-item">
           <label>GitHub 链接</label>
           <a href="https://github.com/hhhhc-da/deepseek-strongsort-ai-smart-electronic-eyes">https://github.com/hhhhc-da/deepseek-strongsort-ai-smart-electronic-eyes</a>
-        </div>
-        <div class="contact-item">
-          <label>联系地址</label>
-          <a href="https://www.tcu.edu.cn/">天津市西青区津静公路26号天津城建大学</a>
         </div>
       </div>
     </section>

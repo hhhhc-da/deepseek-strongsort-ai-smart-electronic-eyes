@@ -2,6 +2,9 @@
 ---
 
 ### 介绍
+
+![image](./images/vue.png)
+
 智能应用项目（仅供实验室模拟）, 工程使用的环境是 `Python 3.11.11 Windows 11` 带 `anaconda`，最后出来的检测结果类似于：
 
 ![gif](./images/ret.gif)
@@ -51,6 +54,10 @@ python main.py        # 用于分析视频和输出（运行完自动退出）
 python test.py --env        # 仅测试 EnvAnalyzer 是否正常
 python test.py --report     # 仅测试 PDF 接口是否正常
 ```
+
+![image](./images/main_page.png)
+
+![image](./images/review.png)
 
 ### 详细内容
 
