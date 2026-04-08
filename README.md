@@ -55,10 +55,6 @@ python test.py --env        # 仅测试 EnvAnalyzer 是否正常
 python test.py --report     # 仅测试 PDF 接口是否正常
 ```
 
-![image](./images/main_page.png)
-
-![image](./images/review.png)
-
 ### 详细内容
 
 我们的项目分为以下几个内容：
@@ -396,3 +392,7 @@ PDF 文件已保存: runs\reports\沪AN9241-13-违规报告-2026-03-25-19-47-51.
 |目标检测|APGL-3.0|https://github.com/sunsmarterjie/yolov12|
 |车道线拟合|MIT|https://github.com/lucastabelini/PolyLaneNet|
 |前端页面|MIT|https://github.com/satnaing/shadcn-admin|
+
+![image](./images/main_page.png)
+
+![image](./images/review.png)
