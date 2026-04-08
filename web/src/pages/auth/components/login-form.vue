@@ -7,7 +7,20 @@ import PrivacyPolicyButton from './privacy-policy-button.vue'
 import TermsOfServiceButton from './terms-of-service-button.vue'
 import ToForgotPasswordLink from './to-forgot-password-link.vue'
 
-const { login, loading } = useAuth()
+const { errorMessage, login, loading } = useAuth()
+const username = ref('')
+const password = ref('')
+
+const isSubmitDisabled = computed(() => {
+  return loading.value || !username.value.trim() || !password.value
+})
+
+async function handleSubmit() {
+  await login({
+    username: username.value.trim(),
+    password: password.value,
+  })
+}
 </script>
 
 <template>
@@ -17,7 +30,7 @@ const { login, loading } = useAuth()
         Login
       </UiCardTitle>
       <UiCardDescription>
-        Enter your email and password below to log into your account.
+        Enter your username and password below to log into your account.
         Not have an account?
         <UiButton
           variant="link" class="px-0 text-muted-foreground"
@@ -27,41 +40,47 @@ const { login, loading } = useAuth()
         </UiButton>
       </UiCardDescription>
     </UiCardHeader>
-    <UiCardContent class="grid gap-4">
-      <div class="grid gap-2">
-        <UiLabel for="email">
-          Email
-        </UiLabel>
-        <UiInput id="email" type="email" placeholder="m@example.com" required />
-      </div>
-      <div class="grid gap-2">
-        <div class="flex items-center justify-between">
-          <UiLabel for="password">
-            Password
+    <UiCardContent>
+      <form class="grid gap-4" @submit.prevent="handleSubmit">
+        <div class="grid gap-2">
+          <UiLabel for="username">
+            Username
           </UiLabel>
-          <ToForgotPasswordLink />
+          <UiInput id="username" v-model="username" autocomplete="username" placeholder="admin" required />
         </div>
-        <UiInput id="password" type="password" required placeholder="*********" />
-      </div>
+        <div class="grid gap-2">
+          <div class="flex items-center justify-between">
+            <UiLabel for="password">
+              Password
+            </UiLabel>
+            <ToForgotPasswordLink />
+          </div>
+          <UiInput id="password" v-model="password" autocomplete="current-password" type="password" required placeholder="*********" />
+        </div>
 
-      <UiButton class="w-full" @click="login">
-        <UiSpinner v-if="loading" class="mr-2" />
-        Mock Login
-      </UiButton>
+        <p v-if="errorMessage" class="text-sm text-destructive">
+          {{ errorMessage }}
+        </p>
 
-      <UiSeparator label="Or continue with" />
+        <UiButton class="w-full" type="submit" :disabled="isSubmitDisabled">
+          <UiSpinner v-if="loading" class="mr-2" />
+          Sign In
+        </UiButton>
 
-      <div class="flex flex-col items-center justify-between gap-4">
-        <GitHubButton />
-        <GoogleButton />
-      </div>
+        <UiSeparator label="Or continue with" />
 
-      <UiCardDescription>
-        By clicking login, you agree to our
-        <TermsOfServiceButton />
-        and
-        <PrivacyPolicyButton />
-      </UiCardDescription>
+        <div class="flex flex-col items-center justify-between gap-4">
+          <GitHubButton />
+          <GoogleButton />
+        </div>
+
+        <UiCardDescription>
+          By clicking login, you agree to our
+          <TermsOfServiceButton />
+          and
+          <PrivacyPolicyButton />
+        </UiCardDescription>
+      </form>
     </UiCardContent>
   </UiCard>
 </template>

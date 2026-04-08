@@ -2,6 +2,7 @@ import type { Router } from 'vue-router'
 
 import { storeToRefs } from 'pinia'
 
+import { RouterPath } from '@/constants/route-path'
 import pinia from '@/plugins/pinia/setup'
 import { useAuthStore } from '@/stores/auth'
 
@@ -11,9 +12,9 @@ export function authGuard(router: Router) {
     const { isLogin } = storeToRefs(authStore)
 
     // If the page requires login but the user is not logged in, redirect to the login page and record the original target page.
-    if (to.meta.auth && !unref(isLogin) && to.name !== '/auth/sign-in') {
+    if (to.meta.auth && !unref(isLogin) && to.path !== RouterPath.LOGIN) {
       return {
-        name: '/auth/sign-in',
+        path: String(RouterPath.LOGIN),
         query: { redirect: to.fullPath },
       }
     }

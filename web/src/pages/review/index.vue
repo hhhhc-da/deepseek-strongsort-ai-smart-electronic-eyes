@@ -1,58 +1,115 @@
 <script setup lang="ts">
+import { toast } from 'vue-sonner'
+
+import type { ReviewItem, UploadReviewStatus } from '@/services/types/review.type'
+
 import { BasicPage } from '@/components/global-layout'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
+import { getNextReview, submitReview } from '@/services/api/review.api'
 
 type ReviewStatus = 'pending' | 'approved' | 'rejected'
 type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline'
 
-const videoUrl = ref('')
-const videoPoster = '/placeholder.png'
-
-const caseInfo = ref({
-  id: 'MR-20260205-0137',
-  source: 'Camera-24 / Gate C',
-  capturedAt: '2026-02-05 14:22:18',
-  location: 'N2 Intersection · Lane 3',
-  eventType: '左转违章',
-  plate: '沪A·8K20X',
-  confidence: 0.92,
-  model: 'TrafficEye v2.3',
-  uploader: 'system@city-eye',
-})
-
-const tags = ['疑似违规', '夜间', '高优先级']
+const currentReview = ref<ReviewItem | null>(null)
 const annotation = ref('')
+const fetchError = ref('')
+const isLoading = ref(true)
+const isSubmitting = ref(false)
 const status = ref<ReviewStatus>('pending')
 
 const statusMeta = computed<{ label: string, variant: BadgeVariant }>(() => {
-  if (status.value === 'approved') {
-    return { label: '已通过', variant: 'default' }
-  }
+  if (status.value === 'approved')
+    return { label: '已接受', variant: 'default' }
 
-  if (status.value === 'rejected') {
-    return { label: '已驳回', variant: 'destructive' }
-  }
+  if (status.value === 'rejected')
+    return { label: '已拒绝', variant: 'destructive' }
 
-  return { label: '待审核', variant: 'secondary' }
+  return { label: currentReview.value ? '待审核' : '暂无案件', variant: 'secondary' }
 })
 
-function handleApply() {
-  status.value = 'approved'
+const currentSummary = computed(() => {
+  if (!currentReview.value) {
+    return {
+      capturedAt: '暂无数据',
+      id: 'N/A',
+      plate: '暂无数据',
+      text: '暂无识别文本',
+      videoUrl: '',
+    }
+  }
+
+  return currentReview.value
+})
+
+const canSubmit = computed(() => {
+  return Boolean(currentReview.value) && !isSubmitting.value && !isLoading.value
+})
+
+async function loadNextReview() {
+  isLoading.value = true
+  fetchError.value = ''
+
+  try {
+    const review = await getNextReview()
+    currentReview.value = review
+    annotation.value = review?.text ?? ''
+    status.value = 'pending'
+  }
+  catch (error) {
+    currentReview.value = null
+    annotation.value = ''
+    status.value = 'pending'
+
+    const message = error instanceof Error ? error.message : '获取待审核数据失败'
+    fetchError.value = message
+    toast.error(message)
+  }
+  finally {
+    isLoading.value = false
+  }
 }
 
-function handleReject() {
-  status.value = 'rejected'
+async function handleDecision(nextStatus: UploadReviewStatus) {
+  if (!currentReview.value || isSubmitting.value)
+    return
+
+  isSubmitting.value = true
+
+  try {
+    await submitReview({
+      id: currentReview.value.id,
+      plate: currentReview.value.plate,
+      text: annotation.value.trim() || currentReview.value.text,
+      status: nextStatus,
+    })
+
+    status.value = nextStatus === '1accept' ? 'approved' : 'rejected'
+    toast.success(nextStatus === '1accept' ? '已接受当前案件' : '已拒绝当前案件')
+
+    await loadNextReview()
+  }
+  catch (error) {
+    const message = error instanceof Error ? error.message : '提交审核失败'
+    toast.error(message)
+  }
+  finally {
+    isSubmitting.value = false
+  }
 }
+
+onMounted(() => {
+  loadNextReview()
+})
 </script>
 
 <template>
   <BasicPage
     title="人工审核"
-    description="审核视频证据与文本信息，并给出最终结论"
+    description="从待审队列中拉取案件，补充批注并提交人工结论"
     sticky
   >
     <template #actions>
@@ -61,36 +118,85 @@ function handleReject() {
           {{ statusMeta.label }}
         </Badge>
         <span class="text-xs text-muted-foreground">
-          Case {{ caseInfo.id }}
+          Case {{ currentSummary.id }}
         </span>
+        <Button type="button" variant="outline" size="sm" :disabled="isLoading || isSubmitting" @click="loadNextReview">
+          刷新
+        </Button>
       </div>
     </template>
 
-    <div class="grid gap-4 lg:grid-cols-[2fr_1fr]">
+    <div v-if="isLoading" class="grid gap-4 lg:grid-cols-[2fr_1fr]">
       <Card class="overflow-hidden">
         <CardHeader>
           <CardTitle>视频显示区</CardTitle>
-          <CardDescription>来源：{{ caseInfo.source }} · {{ caseInfo.capturedAt }}</CardDescription>
+          <CardDescription>正在加载待审核案件</CardDescription>
+        </CardHeader>
+        <CardContent class="space-y-3">
+          <div class="aspect-video w-full rounded-md border bg-muted animate-pulse" />
+          <div class="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+            <div>正在同步案件信息</div>
+            <div>请稍候</div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>文本信息区</CardTitle>
+          <CardDescription>等待接口返回</CardDescription>
+        </CardHeader>
+        <CardContent class="space-y-3 text-sm text-muted-foreground">
+          <p>正在读取识别文本、视频地址和采集时间。</p>
+        </CardContent>
+      </Card>
+    </div>
+
+    <div v-else-if="!currentReview" class="grid gap-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>暂无待审核案件</CardTitle>
+          <CardDescription>
+            {{ fetchError || '当前队列为空，可以稍后刷新继续审核。' }}
+          </CardDescription>
+        </CardHeader>
+        <CardContent class="space-y-3 text-sm text-muted-foreground">
+          <p>接口暂未返回新的审核任务。</p>
+        </CardContent>
+        <CardFooter>
+          <Button type="button" @click="loadNextReview">
+            重新获取
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
+
+    <div v-else class="grid gap-4 lg:grid-cols-[2fr_1fr]">
+      <Card class="overflow-hidden">
+        <CardHeader>
+          <CardTitle>视频显示区</CardTitle>
+          <CardDescription>{{ currentSummary.plate }} · {{ currentSummary.capturedAt }}</CardDescription>
         </CardHeader>
         <CardContent class="space-y-3">
           <div class="aspect-video w-full overflow-hidden rounded-md border bg-muted">
             <video
-              v-if="videoUrl"
+              v-if="currentSummary.videoUrl"
               class="h-full w-full"
               controls
-              :src="videoUrl"
-              :poster="videoPoster"
+              :src="currentSummary.videoUrl"
+              poster="/placeholder.png"
             />
             <div v-else class="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
-              暂无视频，等待载入或替换
+              当前案件未返回可播放视频地址
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-            <div>分辨率：1920×1080</div>
-            <div>时长：00:32</div>
-            <div>帧率：25 FPS</div>
-            <div>置信度：{{ caseInfo.confidence }}</div>
+          <div class="grid grid-cols-1 gap-2 text-xs text-muted-foreground sm:grid-cols-2">
+            <div>案件编号：{{ currentSummary.id }}</div>
+            <div>采集时间：{{ currentSummary.capturedAt }}</div>
+            <div class="sm:col-span-2 break-all">
+              视频地址：{{ currentSummary.videoUrl || '暂无视频地址' }}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -99,67 +205,69 @@ function handleReject() {
         <Card>
           <CardHeader>
             <CardTitle>文本信息区</CardTitle>
-            <CardDescription>案件概要与系统识别信息。</CardDescription>
+            <CardDescription>展示后端返回的车牌、识别文本和基础信息。</CardDescription>
           </CardHeader>
           <CardContent class="space-y-3">
             <div class="grid gap-2 text-sm">
-              <div class="flex items-center justify-between">
+              <div class="flex items-center justify-between gap-4">
                 <span class="text-muted-foreground">案件编号</span>
-                <span class="font-medium">{{ caseInfo.id }}</span>
+                <span class="font-medium">{{ currentSummary.id }}</span>
               </div>
-              <div class="flex items-center justify-between">
-                <span class="text-muted-foreground">事件类型</span>
-                <span class="font-medium">{{ caseInfo.eventType }}</span>
-              </div>
-              <div class="flex items-center justify-between">
+              <div class="flex items-center justify-between gap-4">
                 <span class="text-muted-foreground">车牌号码</span>
-                <span class="font-medium">{{ caseInfo.plate }}</span>
+                <span class="font-medium">{{ currentSummary.plate }}</span>
               </div>
-              <div class="flex items-center justify-between">
-                <span class="text-muted-foreground">位置</span>
-                <span class="font-medium">{{ caseInfo.location }}</span>
+              <div class="flex items-start justify-between gap-4">
+                <span class="text-muted-foreground">识别文本</span>
+                <span class="max-w-64 text-right font-medium break-words">{{ currentSummary.text }}</span>
               </div>
-              <div class="flex items-center justify-between">
-                <span class="text-muted-foreground">检测模型</span>
-                <span class="font-medium">{{ caseInfo.model }}</span>
-              </div>
-              <div class="flex items-center justify-between">
-                <span class="text-muted-foreground">上传者</span>
-                <span class="font-medium">{{ caseInfo.uploader }}</span>
+              <div class="flex items-center justify-between gap-4">
+                <span class="text-muted-foreground">采集时间</span>
+                <span class="font-medium">{{ currentSummary.capturedAt }}</span>
               </div>
             </div>
 
             <Separator />
 
-            <div class="flex flex-wrap gap-2">
-              <Badge v-for="tag in tags" :key="tag" variant="outline">
-                {{ tag }}
-              </Badge>
-            </div>
+            <Badge variant="outline">
+              待人工复核
+            </Badge>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
             <CardTitle>批注区</CardTitle>
-            <CardDescription>记录人工审核意见、关键帧与处理建议。</CardDescription>
+            <CardDescription>可直接编辑后端原始文本后再提交审核结果。</CardDescription>
           </CardHeader>
           <CardContent class="space-y-3">
             <Textarea
               v-model="annotation"
-              placeholder="请填写审核意见，例如：关键帧 00:12 车辆压线，建议保留证据并开具处罚。"
+              placeholder="请填写审核意见，例如：证据清晰，允许通过；或：关键帧不足，建议驳回。"
               class="min-h-32 resize-y"
+              :disabled="isSubmitting"
             />
             <p class="text-xs text-muted-foreground">
-              建议包含：违规点、关键帧时间、处理建议。
+              Reject 会提交 0reject，Accept 会提交 1accept。
             </p>
           </CardContent>
           <CardFooter class="flex gap-2">
-            <Button type="button" variant="destructive" class="flex-1" @click="handleReject">
-              Reject
+            <Button
+              type="button"
+              variant="destructive"
+              class="flex-1"
+              :disabled="!canSubmit"
+              @click="handleDecision('0reject')"
+            >
+              {{ isSubmitting ? '提交中...' : 'Reject' }}
             </Button>
-            <Button type="button" class="flex-1" @click="handleApply">
-              Apply
+            <Button
+              type="button"
+              class="flex-1"
+              :disabled="!canSubmit"
+              @click="handleDecision('1accept')"
+            >
+              {{ isSubmitting ? '提交中...' : 'Accept' }}
             </Button>
           </CardFooter>
         </Card>
@@ -167,3 +275,8 @@ function handleReject() {
     </div>
   </BasicPage>
 </template>
+
+<route lang="yaml">
+meta:
+  auth: true
+</route>

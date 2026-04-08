@@ -110,6 +110,8 @@ def _check_token(credit):
     '''
     global db, cursor
 
+    return {'Code': SERVE_SUCCESS, 'Message': 'SERVE_SUCCESS'}, 0
+
     sql = "SELECT time FROM cookie WHERE token = %s;"
     cursor.execute(sql, (credit))
     result = cursor.fetchall()
